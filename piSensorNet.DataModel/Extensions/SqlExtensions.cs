@@ -30,7 +30,7 @@ namespace piSensorNet.DataModel.Extensions
             => value.ToString("D");
 
         public static string ToSql(this TimeSpan value)
-            => value.ToString(@"hh\:mm\:ss\.fff");
+            => $"'{value:hh':'mm':'ss'.'fff}'";
         
         public static string ToSql(this string value)
             => value != null ? $"'{value}'" : Null;

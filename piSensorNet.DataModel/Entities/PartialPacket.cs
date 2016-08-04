@@ -4,48 +4,35 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
 using piSensorNet.DataModel.Entities.Base;
+using piSensorNet.DataModel.Enums;
 
 namespace piSensorNet.DataModel.Entities
 {
-    public class PartialPacket : EntityBase
+    public class PartialPacket : EntityBase<PartialPacket>
     {
         internal static void OnModelCreating(EntityTypeConfiguration<PartialPacket> entityTypeConfiguration)
         {
             entityTypeConfiguration.HasOptional(i => i.Packet)
                                    .WithMany(i => i.PartialPackets)
                                    .HasForeignKey(i => i.PacketID);
-
-            entityTypeConfiguration.HasRequired(i => i.ReceivedMessage)
-                                   .WithOptional(i => i.PartialPacket);
         }
 
         protected PartialPacket() {}
 
-        public PartialPacket(int receivedMessageID, string address, byte number, byte current, byte total, string message, DateTime received)
-        {
-            ReceivedMessageID = receivedMessageID;
-            Address = address;
-            Number = number;
-            Current = current;
-            Total = total;
-            Message = message;
-            Received = received;
-        }
-
-        public PartialPacket(ReceivedMessage receivedMessage, string address, byte number, byte current, byte total, string message, DateTime received)
+        public PartialPacket(string address, byte number, byte current, byte total, string message, DateTime received)
         {
             Address = address;
             Number = number;
             Current = current;
             Total = total;
             Message = message;
-            ReceivedMessage = receivedMessage;
             Received = received;
         }
 
 
         [Key]
-        public int ReceivedMessageID { get; set; }
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int ID { get; set; }
 
         public int? PacketID { get; set; } = null;
 
@@ -64,13 +51,13 @@ namespace piSensorNet.DataModel.Entities
         [MaxLength(32)]
         public string Message { get; set; }
 
+        public PartialPacketStateEnum State { get; set; } = PartialPacketStateEnum.New;
+
         public DateTime Created { get; set; } = DateTime.Now;
 
         public DateTime Received { get; set; }
 
 
         public virtual Packet Packet { get; set; }
-
-        public virtual ReceivedMessage ReceivedMessage { get; set; }
     }
 }

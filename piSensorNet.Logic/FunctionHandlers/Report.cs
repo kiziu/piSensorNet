@@ -8,6 +8,7 @@ using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
 using piSensorNet.DataModel.Enums;
+using piSensorNet.Logic.Custom;
 using piSensorNet.Logic.FunctionHandlers.Base;
 
 namespace piSensorNet.Logic.FunctionHandlers
@@ -16,8 +17,11 @@ namespace piSensorNet.Logic.FunctionHandlers
     {
         public FunctionTypeEnum FunctionType => FunctionTypeEnum.Report;
 
-        public void Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, Queue<Func<IHubProxy, Task>> hubTasksQueue)
+        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Func<IHubProxy, Task>> hubTasksQueue)
         {
+            if (packet.Module.State != ModuleStateEnum.Identified)
+                return PacketStateEnum.Skipped;
+
             var queryableFunctionPairs = FunctionHandlerHelper.SplitPairs(packet.Text, moduleConfiguration.FunctionResultDelimiter, moduleConfiguration.FunctionResultNameDelimiter);
             var module = packet.Module;
             var moduleFunctions = context.ModuleFunctions
@@ -35,6 +39,8 @@ namespace piSensorNet.Logic.FunctionHandlers
 
                 handler?.Handle(moduleConfiguration, context, packet, queryableFunctionPair.Value, hubTasksQueue);
             }
+
+            return PacketStateEnum.Handled;
         }
     }
 }

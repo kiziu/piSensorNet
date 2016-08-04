@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace piSensorNet.Common
 {
-    public interface IModuleConfiguration
+    public interface IModuleConfiguration : IConfiguration
     {
         string ConnectionString { get; }
 
@@ -51,19 +51,23 @@ namespace piSensorNet.Common
 
     public class ModuleConfiguration : IModuleConfiguration
     {
+        private readonly IConfiguration _configuration;
+
         public ModuleConfiguration(IConfiguration configuration)
         {
-            FunctionResultValueDelimiter = configuration["Settings:FunctionResultValueDelimiter"].Single();
-            FunctionResultDelimiter = configuration["Settings:FunctionResultDelimiter"].Single();
-            FunctionResultNameDelimiter = configuration["Settings:FunctionResultNameDelimiter"].Single();
-            MessageIDDelimiter = configuration["Settings:MessageIDDelimiter"].Single();
-            FunctionQuery = configuration["Settings:FunctionQuery"].Single();
-            FunctionDelimiter = configuration["Settings:FunctionDelimiter"].Single();
-            AddressDelimiter = configuration["Settings:AddressDelimiter"].Single();
-            PeriodUnitLengthInMs = int.Parse(configuration["Settings:PeriodUnitLengthInMs"]);
-            BroadcastAddress = configuration["Settings:BroadcastAddress"];
-            AddressPattern = configuration["Settings:AddressPattern"];
-            ConnectionString = configuration["Settings:ConnectionString"];
+            _configuration = configuration;
+
+            FunctionResultValueDelimiter = _configuration["Settings:FunctionResultValueDelimiter"].Single();
+            FunctionResultDelimiter = _configuration["Settings:FunctionResultDelimiter"].Single();
+            FunctionResultNameDelimiter = _configuration["Settings:FunctionResultNameDelimiter"].Single();
+            MessageIDDelimiter = _configuration["Settings:MessageIDDelimiter"].Single();
+            FunctionQuery = _configuration["Settings:FunctionQuery"].Single();
+            FunctionDelimiter = _configuration["Settings:FunctionDelimiter"].Single();
+            AddressDelimiter = _configuration["Settings:AddressDelimiter"].Single();
+            PeriodUnitLengthInMs = int.Parse(_configuration["Settings:PeriodUnitLengthInMs"]);
+            BroadcastAddress = _configuration["Settings:BroadcastAddress"];
+            AddressPattern = _configuration["Settings:AddressPattern"];
+            ConnectionString = _configuration["Settings:ConnectionString"];
         }
 
         public string ConnectionString { get; }
@@ -105,5 +109,7 @@ namespace piSensorNet.Common
         /// |
         /// </summary>
         public char FunctionResultValueDelimiter { get; }
+
+        public string this[string key] => _configuration[key];
     }
 }

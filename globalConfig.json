@@ -2,6 +2,7 @@
     "Settings": {
         "ConnectionString": "Server=192.168.1.2;Port=3306;Database=piSensorNet;Uid=db;Pwd=dbpassword;CharSet=utf8;",
         "BroadcastAddress": "eizik",
+        "AddressPattern": "{0}izik",
         "PeriodUnitLengthInMs": "100",
         "AddressDelimiter": "@",
         "MessageIDDelimiter": "#",

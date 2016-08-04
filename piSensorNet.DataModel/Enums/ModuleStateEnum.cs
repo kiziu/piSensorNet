@@ -3,13 +3,10 @@ using System.Linq;
 
 namespace piSensorNet.DataModel.Enums
 {
-    public enum PacketStateEnum
+    public enum ModuleStateEnum
     {
         Unknown = 0,
         New = 1,
-        Handled = 2,
-        Unhandled = 4,
-        Redundant = 5,
-        Skipped = 6,
+        Identified = 2,
     }
 }

@@ -5,10 +5,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
 using piSensorNet.DataModel.Entities.Base;
+using piSensorNet.DataModel.Enums;
 
 namespace piSensorNet.DataModel.Entities
 {
-    public class Module : EntityBase
+    public class Module : EntityBase<Module>
     {
         internal static void OnModelCreating(EntityTypeConfiguration<Module> entityTypeConfiguration)
         {
@@ -52,6 +53,8 @@ namespace piSensorNet.DataModel.Entities
         [Column(TypeName = "char")]
         [MaxLength(5)]
         public string Address { get; set; }
+
+        public ModuleStateEnum State { get; set; } = ModuleStateEnum.New;
 
         public DateTime Created { get; set; } = DateTime.Now;
 

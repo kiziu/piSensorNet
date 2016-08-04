@@ -31,6 +31,7 @@ namespace piSensorNet.DataModel.Entities
         {
             Value = value;
             Received = received;
+            // ReSharper disable once VirtualMemberCallInConstructor
             Module = module;
         }
 

@@ -33,6 +33,7 @@ namespace piSensorNet.DataModel.Entities
         public TemperatureSensor(Module module, string address)
         {
             Address = address;
+            // ReSharper disable once VirtualMemberCallInConstructor
             Module = module;
         }
 

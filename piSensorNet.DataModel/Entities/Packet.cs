@@ -44,6 +44,7 @@ namespace piSensorNet.DataModel.Entities
             Number = number;
             Text = text;
             Received = received;
+            // ReSharper disable once VirtualMemberCallInConstructor
             Module = module;
         }
 
@@ -70,7 +71,7 @@ namespace piSensorNet.DataModel.Entities
 
         public DateTime Received { get; set; }
 
-        public DateTime? Handled { get; set; } = null;
+        public DateTime? Processed { get; set; } = null;
 
 
         public virtual Module Module { get; set; }

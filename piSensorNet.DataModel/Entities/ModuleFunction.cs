@@ -30,7 +30,9 @@ namespace piSensorNet.DataModel.Entities
 
         public ModuleFunction(Module module, Function function)
         {
+            // ReSharper disable once VirtualMemberCallInConstructor
             Module = module;
+            // ReSharper disable once VirtualMemberCallInConstructor
             Function = function;
         }
 

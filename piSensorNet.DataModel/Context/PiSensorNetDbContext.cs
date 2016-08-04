@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.Entity.Core.Metadata.Edm;
 using System.Data.Entity.Infrastructure;
@@ -16,13 +17,21 @@ namespace piSensorNet.DataModel.Context
     [DbConfigurationType(typeof(PiSensorNetDbConfiguration))]
     public partial class PiSensorNetDbContext : DbContext
     {
+        static PiSensorNetDbContext()
+        {
+            Database.SetInitializer(new NullDatabaseInitializer<PiSensorNetDbContext>());
+        }
+
         private static readonly PiSensorNetDbContextInitializer RecreateInitializer = new PiSensorNetDbContextInitializer();
+        private static readonly ConcurrentDictionary<Type, string> TableNamesCache = new ConcurrentDictionary<Type, string>();
 
         public static string Identity => "LAST_INSERT_ID()";
         public static string SelectIdentity => "SELECT " + Identity;
         public static string SetIdentityVariable(string name) => $"SET {name} = ({Identity})";
-
+        
         public static Action<string> Logger { get; set; } = null;
+
+        private readonly List<string> _queries = new List<string>();
 
         public bool ChangeTracking
         {
@@ -38,15 +47,16 @@ namespace piSensorNet.DataModel.Context
         private PiSensorNetDbContext(string nameOrConnectionString, IDatabaseInitializer<PiSensorNetDbContext> initializer)
             : base(nameOrConnectionString)
         {
+            if (initializer != null)
+                Database.SetInitializer(initializer);
+
             if (Logger != null)
                 Database.Log = Logger;
             else if (Constants.IsWindows && initializer != null)
                 Database.Log = Console.Write;
             else if (Constants.IsWindows)
                 Database.Log = i => System.Diagnostics.Debug.Write(i);
-
-            Database.SetInitializer(initializer);
-
+            
             ChangeTracking = false;
 
             Configuration.UseDatabaseNullSemantics = false;
@@ -90,10 +100,9 @@ namespace piSensorNet.DataModel.Context
             return GetTableName(typeOf);
         }
 
-        private static readonly ConcurrentDictionary<Type, string> TableNames = new ConcurrentDictionary<Type, string>();
         public string GetTableName(Type entityType)
         {
-            return TableNames.GetOrAdd(entityType, type =>
+            return TableNamesCache.GetOrAdd(entityType, type =>
             {
                 var objectContext = ((IObjectContextAdapter)this).ObjectContext;
                 var container = objectContext.MetadataWorkspace.GetEntityContainer(objectContext.DefaultContainerName, DataSpace.CSpace);
@@ -105,46 +114,36 @@ namespace piSensorNet.DataModel.Context
                 return entitySetBase.Name;
             });
         }
+        
+        public void EnqueueQuery(string sql) => _queries.Add(sql);
 
-        public static string GetMemberName<TEntity>(Expression<Func<TEntity, object>> expression)
-            where TEntity : EntityBase
+        public void ExecuteQueries()
         {
-            MemberExpression body = null;
-
-            var unaryExpression = expression.Body as UnaryExpression;
-            if (unaryExpression != null)
-            {
-                if (unaryExpression.NodeType == ExpressionType.Convert || unaryExpression.NodeType == ExpressionType.ConvertChecked)
-                    body = (MemberExpression)unaryExpression.Operand;
-            }
-            else if (expression.Body is MemberExpression)
-                body = (MemberExpression)expression.Body;
-
-            if (body == null)
-                throw new InvalidOperationException(
-                    $"Expression '{expression}' is not valid version of {typeof(MemberExpression).Name}.");
-
-            var member = body.Member;
-
-            return member.Name;
+            _queries.ForEach(i => Database.ExecuteSqlCommand(i));
+            _queries.Clear();
         }
 
-        // TODO KZ: remove when done
-        //public override int SaveChanges()
-        //{
-        //    try
-        //    {
-        //        return base.SaveChanges();
-        //    }
-        //    catch (DbEntityValidationException e)
-        //    {
-        //        var errors = e.EntityValidationErrors
-        //                      .SelectMany(i => i.ValidationErrors)
-        //                      .Select(i => $"{i.PropertyName}: {i.ErrorMessage}")
-        //                      .Join(Environment.NewLine);
+        public override int SaveChanges()
+        {
+            var result =  base.SaveChanges();
 
-        //        throw new DbEntityValidationException($"{e.Message}{Environment.NewLine}{errors}", e.EntityValidationErrors, e.InnerException);
-        //    }
-        //}
+            ExecuteQueries();
+
+            return result;
+
+            //try
+            //{
+            //    return base.SaveChanges();
+            //}
+            //catch (DbEntityValidationException e)
+            //{
+            //    var errors = e.EntityValidationErrors
+            //                  .SelectMany(i => i.ValidationErrors)
+            //                  .Select(i => $"{i.PropertyName}: {i.ErrorMessage}")
+            //                  .Join(Environment.NewLine);
+
+            //    throw new DbEntityValidationException($"{e.Message}{Environment.NewLine}{errors}", e.EntityValidationErrors, e.InnerException);
+            //}
+        }
     }
 }

@@ -7,6 +7,7 @@ using System.Text;
 using JetBrains.Annotations;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.System;
+using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Extensions;
 
 namespace piSensorNet.DataModel.Entities.Base
@@ -16,10 +17,11 @@ namespace piSensorNet.DataModel.Entities.Base
     {
         //public static InsertGenerator<TEntity> GenerateInsert { get; } = GenerateStaticInsertMethod<TEntity>();
 
-        public static string GenerateUpdate(string tableName, IReadOnlyDictionary<Expression<Func<TEntity, object>>, string> values, params KeyValuePair<Expression<Func<TEntity, object>>, string>[] predicates)
+        public static string GenerateUpdate(PiSensorNetDbContext context, IReadOnlyDictionary<Expression<Func<TEntity, object>>, string> values, params Tuple<Expression<Func<TEntity, object>>, string, string>[] predicates)
         {
+            var tableName = context.GetTableName<TEntity>();
             var columns = values.Select(i => $"`{i.Key.GetMemberName()}` = {i.Value}").Join(", ");
-            var where = predicates.Select(i => $"`{i.Key.GetMemberName()}` = {i.Value}").Join(" AND ");
+            var where = predicates.Select(i => $"`{i.Item1.GetMemberName()}` {i.Item2} {i.Item3}").Join(" AND ");
 
             var update = UpdatePattern.AsFormatFor(tableName, columns, where);
 
@@ -32,7 +34,6 @@ namespace piSensorNet.DataModel.Entities.Base
 
     public abstract class EntityBase
     {
-
         public const string OnModelCreatingMethodName = "OnModelCreating";
 
         protected static readonly MethodInfo StringFormatMethod = Reflector.Instance<String>

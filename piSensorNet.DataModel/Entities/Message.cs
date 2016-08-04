@@ -20,11 +20,7 @@ namespace piSensorNet.DataModel.Entities
             entityTypeConfiguration.HasRequired(i => i.Function)
                                    .WithMany()
                                    .HasForeignKey(i => i.FunctionID);
-
-            entityTypeConfiguration.HasOptional(i => i.ResultMessage)
-                                   .WithMany(i => i.ResultMessages)
-                                   .HasForeignKey(i => i.ResultMessageID);
-
+            
             entityTypeConfiguration.HasMany(i => i.Packets)
                                    .WithOptional(i => i.Message);
         }
@@ -40,6 +36,7 @@ namespace piSensorNet.DataModel.Entities
         public Message(Function function, bool isQuery)
         {
             IsQuery = isQuery;
+            // ReSharper disable once VirtualMemberCallInConstructor
             Function = function;
         }
 
@@ -51,9 +48,7 @@ namespace piSensorNet.DataModel.Entities
         public int? ModuleID { get; set; } = null;
 
         public int FunctionID { get; set; }
-
-        public int? ResultMessageID { get; set; } = null;
-
+        
         [Column(TypeName = "varchar")]
         [MaxLength(500)]
         public string Text { get; set; } = null;
@@ -62,20 +57,20 @@ namespace piSensorNet.DataModel.Entities
 
         public DateTime Created { get; set; } = DateTime.Now;
 
-        public SentMessageStateEnum State { get; set; } = SentMessageStateEnum.Queued;
+        public MessageStateEnum State { get; set; } = MessageStateEnum.Queued;
 
         public DateTime? Sent { get; set; } = null;
 
         public DateTime? ResponseReceived { get; set; } = null;
 
+        [Column(TypeName = "varchar")]
+        [MaxLength(500)]
+        public string Error { get; set; }
+
 
         public virtual Module Module { get; set; }
 
-        //public virtual SentMessage SentMessage { get; set; }
-
         public virtual Function Function { get; set; }
-
-        public virtual ReceivedMessage ResultMessage { get; set; }
 
 
         public virtual ICollection<Packet> Packets { get; protected internal set; } = new List<Packet>();

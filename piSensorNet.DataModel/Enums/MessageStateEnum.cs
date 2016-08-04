@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace piSensorNet.DataModel.Enums
 {
-    public enum SentMessageStateEnum
+    public enum MessageStateEnum
     {
         Unknown = 0,
         Queued = 1,

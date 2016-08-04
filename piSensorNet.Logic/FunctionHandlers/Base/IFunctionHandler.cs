@@ -7,6 +7,7 @@ using piSensorNet.Common;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
 using piSensorNet.DataModel.Enums;
+using piSensorNet.Logic.Custom;
 
 namespace piSensorNet.Logic.FunctionHandlers.Base
 {
@@ -14,6 +15,6 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
     {
         FunctionTypeEnum FunctionType { get; }
 
-        void Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, Queue<Func<IHubProxy, Task>> hubTasksQueue);
+        FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Func<IHubProxy, Task>> hubTasksQueue);
     }
 }
