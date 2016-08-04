@@ -1,0 +1,22 @@
+﻿{
+    "version": "1.0.0",
+
+    "sdk": {
+        "version": "1.0.0-rc1-update2"
+    },
+	
+    "compilationOptions": {
+        "nowarn": [ "NU1006" ]
+    },
+
+    "frameworks": {
+        "dnx451": {
+            "frameworkAssemblies": {
+            },
+
+            "dependencies": {
+                "piSensorNet.Common": "1.0.0"
+            }
+        }
+    }
+}

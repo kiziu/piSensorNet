@@ -1,0 +1,7 @@
+﻿{
+    "Settings": {
+        "AddressPattern": "{0}izik",
+        "MessagePattern": "@{0}#{1}({2}/{3}):{4}",
+        "DefaultFunctions": "Identify,Report,FunctionList"
+    }
+}

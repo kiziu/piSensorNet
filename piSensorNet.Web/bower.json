@@ -1,0 +1,23 @@
+{
+  "name": "piSensorNet.Web",
+  "description": "Web front for piSensorNet",
+  "main": "",
+  "authors": [
+    "kiziu"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "^3.1.0",
+    "signalr": "^2.2.1",
+    "noty": "^2.3.8"
+  }
+}

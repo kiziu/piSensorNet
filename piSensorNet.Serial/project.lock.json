@@ -1,0 +1,710 @@
+{
+  "locked": false,
+  "version": 2,
+  "targets": {
+    "DNX,Version=v4.5.1": {
+      "EntityFramework/6.1.3": {
+        "type": "package",
+        "frameworkAssemblies": [
+          "System.ComponentModel.DataAnnotations"
+        ],
+        "compile": {
+          "lib/net45/EntityFramework.dll": {},
+          "lib/net45/EntityFramework.SqlServer.dll": {}
+        },
+        "runtime": {
+          "lib/net45/EntityFramework.dll": {},
+          "lib/net45/EntityFramework.SqlServer.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.Abstractions/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.FileExtensions/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.FileExtensions.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.FileExtensions.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.Json/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+          "Microsoft.Extensions.Configuration.FileExtensions": "1.0.0-rc1-final",
+          "Newtonsoft.Json": "6.0.6"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.Json.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.Json.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Primitives/1.0.0-rc1-final": {
+        "type": "package",
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Primitives.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Primitives.dll": {}
+        }
+      },
+      "Mono.Posix/4.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net40/Mono.Posix.dll": {}
+        },
+        "runtime": {
+          "lib/net40/Mono.Posix.dll": {}
+        }
+      },
+      "MySql.Data/6.9.8": {
+        "type": "package",
+        "compile": {
+          "lib/net45/MySql.Data.dll": {}
+        },
+        "runtime": {
+          "lib/net45/MySql.Data.dll": {}
+        }
+      },
+      "MySql.Data.Entity/6.9.8": {
+        "type": "package",
+        "dependencies": {
+          "EntityFramework": "6.0.0",
+          "MySql.Data": "6.9.8"
+        },
+        "compile": {
+          "lib/net45/MySql.Data.Entity.EF6.dll": {}
+        },
+        "runtime": {
+          "lib/net45/MySql.Data.Entity.EF6.dll": {}
+        }
+      },
+      "Newtonsoft.Json/6.0.6": {
+        "type": "package",
+        "compile": {
+          "lib/net45/Newtonsoft.Json.dll": {}
+        },
+        "runtime": {
+          "lib/net45/Newtonsoft.Json.dll": {}
+        }
+      },
+      "piSensorNet.Common/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+          "Microsoft.Extensions.Configuration.Json": "1.0.0-rc1-final",
+          "Mono.Posix": "4.0.0"
+        }
+      },
+      "piSensorNet.DataModel/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "EntityFramework": "6.1.3",
+          "MySql.Data.Entity": "6.9.8",
+          "piSensorNet.Common": "1.0.0"
+        },
+        "frameworkAssemblies": [
+          "System.Data"
+        ]
+      },
+      "piSensorNet.WiringPi/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "piSensorNet.Common": "1.0.0"
+        }
+      }
+    },
+    "DNX,Version=v4.5.1/raspbian.8-x86": {
+      "EntityFramework/6.1.3": {
+        "type": "package",
+        "frameworkAssemblies": [
+          "System.ComponentModel.DataAnnotations"
+        ],
+        "compile": {
+          "lib/net45/EntityFramework.dll": {},
+          "lib/net45/EntityFramework.SqlServer.dll": {}
+        },
+        "runtime": {
+          "lib/net45/EntityFramework.dll": {},
+          "lib/net45/EntityFramework.SqlServer.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.Abstractions/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.FileExtensions/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.FileExtensions.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.FileExtensions.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.Json/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+          "Microsoft.Extensions.Configuration.FileExtensions": "1.0.0-rc1-final",
+          "Newtonsoft.Json": "6.0.6"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.Json.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.Json.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Primitives/1.0.0-rc1-final": {
+        "type": "package",
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Primitives.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Primitives.dll": {}
+        }
+      },
+      "Mono.Posix/4.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net40/Mono.Posix.dll": {}
+        },
+        "runtime": {
+          "lib/net40/Mono.Posix.dll": {}
+        }
+      },
+      "MySql.Data/6.9.8": {
+        "type": "package",
+        "compile": {
+          "lib/net45/MySql.Data.dll": {}
+        },
+        "runtime": {
+          "lib/net45/MySql.Data.dll": {}
+        }
+      },
+      "MySql.Data.Entity/6.9.8": {
+        "type": "package",
+        "dependencies": {
+          "EntityFramework": "6.0.0",
+          "MySql.Data": "6.9.8"
+        },
+        "compile": {
+          "lib/net45/MySql.Data.Entity.EF6.dll": {}
+        },
+        "runtime": {
+          "lib/net45/MySql.Data.Entity.EF6.dll": {}
+        }
+      },
+      "Newtonsoft.Json/6.0.6": {
+        "type": "package",
+        "compile": {
+          "lib/net45/Newtonsoft.Json.dll": {}
+        },
+        "runtime": {
+          "lib/net45/Newtonsoft.Json.dll": {}
+        }
+      },
+      "piSensorNet.Common/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+          "Microsoft.Extensions.Configuration.Json": "1.0.0-rc1-final",
+          "Mono.Posix": "4.0.0"
+        }
+      },
+      "piSensorNet.DataModel/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "EntityFramework": "6.1.3",
+          "MySql.Data.Entity": "6.9.8",
+          "piSensorNet.Common": "1.0.0"
+        },
+        "frameworkAssemblies": [
+          "System.Data"
+        ]
+      },
+      "piSensorNet.WiringPi/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "piSensorNet.Common": "1.0.0"
+        }
+      }
+    },
+    "DNX,Version=v4.5.1/raspbian.8-x64": {
+      "EntityFramework/6.1.3": {
+        "type": "package",
+        "frameworkAssemblies": [
+          "System.ComponentModel.DataAnnotations"
+        ],
+        "compile": {
+          "lib/net45/EntityFramework.dll": {},
+          "lib/net45/EntityFramework.SqlServer.dll": {}
+        },
+        "runtime": {
+          "lib/net45/EntityFramework.dll": {},
+          "lib/net45/EntityFramework.SqlServer.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.Abstractions/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.Abstractions.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.FileExtensions/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "1.0.0-rc1-final"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.FileExtensions.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.FileExtensions.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration.Json/1.0.0-rc1-final": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+          "Microsoft.Extensions.Configuration.FileExtensions": "1.0.0-rc1-final",
+          "Newtonsoft.Json": "6.0.6"
+        },
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Configuration.Json.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Configuration.Json.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Primitives/1.0.0-rc1-final": {
+        "type": "package",
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "mscorlib",
+          "System",
+          "System.Core"
+        ],
+        "compile": {
+          "lib/net451/Microsoft.Extensions.Primitives.dll": {}
+        },
+        "runtime": {
+          "lib/net451/Microsoft.Extensions.Primitives.dll": {}
+        }
+      },
+      "Mono.Posix/4.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net40/Mono.Posix.dll": {}
+        },
+        "runtime": {
+          "lib/net40/Mono.Posix.dll": {}
+        }
+      },
+      "MySql.Data/6.9.8": {
+        "type": "package",
+        "compile": {
+          "lib/net45/MySql.Data.dll": {}
+        },
+        "runtime": {
+          "lib/net45/MySql.Data.dll": {}
+        }
+      },
+      "MySql.Data.Entity/6.9.8": {
+        "type": "package",
+        "dependencies": {
+          "EntityFramework": "6.0.0",
+          "MySql.Data": "6.9.8"
+        },
+        "compile": {
+          "lib/net45/MySql.Data.Entity.EF6.dll": {}
+        },
+        "runtime": {
+          "lib/net45/MySql.Data.Entity.EF6.dll": {}
+        }
+      },
+      "Newtonsoft.Json/6.0.6": {
+        "type": "package",
+        "compile": {
+          "lib/net45/Newtonsoft.Json.dll": {}
+        },
+        "runtime": {
+          "lib/net45/Newtonsoft.Json.dll": {}
+        }
+      },
+      "piSensorNet.Common/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "1.0.0-rc1-final",
+          "Microsoft.Extensions.Configuration.Json": "1.0.0-rc1-final",
+          "Mono.Posix": "4.0.0"
+        }
+      },
+      "piSensorNet.DataModel/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "EntityFramework": "6.1.3",
+          "MySql.Data.Entity": "6.9.8",
+          "piSensorNet.Common": "1.0.0"
+        },
+        "frameworkAssemblies": [
+          "System.Data"
+        ]
+      },
+      "piSensorNet.WiringPi/1.0.0": {
+        "type": "project",
+        "framework": "DNX,Version=v4.5.1",
+        "dependencies": {
+          "piSensorNet.Common": "1.0.0"
+        }
+      }
+    }
+  },
+  "libraries": {
+    "piSensorNet.Common/1.0.0": {
+      "type": "project",
+      "path": "../piSensorNet.Common/project.json"
+    },
+    "piSensorNet.DataModel/1.0.0": {
+      "type": "project",
+      "path": "../piSensorNet.DataModel/project.json"
+    },
+    "piSensorNet.WiringPi/1.0.0": {
+      "type": "project",
+      "path": "../piSensorNet.WiringPi/project.json"
+    },
+    "EntityFramework/6.1.3": {
+      "type": "package",
+      "sha512": "2xzFHAF3VVdmTR3//MygtQpwfbDjeaq+nQwCcokLzen7MKHOojPaxNPQPa4diHY1QtcR7zlHAJHNRqPB7W2Syw==",
+      "files": [
+        "content/App.config.transform",
+        "content/Web.config.transform",
+        "EntityFramework.6.1.3.nupkg.sha512",
+        "EntityFramework.nuspec",
+        "lib/net40/EntityFramework.dll",
+        "lib/net40/EntityFramework.SqlServer.dll",
+        "lib/net40/EntityFramework.SqlServer.xml",
+        "lib/net40/EntityFramework.xml",
+        "lib/net45/EntityFramework.dll",
+        "lib/net45/EntityFramework.SqlServer.dll",
+        "lib/net45/EntityFramework.SqlServer.xml",
+        "lib/net45/EntityFramework.xml",
+        "tools/about_EntityFramework.help.txt",
+        "tools/EntityFramework.PowerShell.dll",
+        "tools/EntityFramework.PowerShell.Utility.dll",
+        "tools/EntityFramework.psd1",
+        "tools/EntityFramework.psm1",
+        "tools/init.ps1",
+        "tools/install.ps1",
+        "tools/migrate.exe"
+      ]
+    },
+    "Microsoft.Extensions.Configuration/1.0.0-rc1-final": {
+      "type": "package",
+      "sha512": "2ayWzqMVGWjr8o8bOSnIsyQbi9sLz9Ya8+YM+9tM/ivSnLHuN7TNHNfJv4jTyRZvoOafdh5Ivlc/OdmsZPXlQQ==",
+      "files": [
+        "lib/dotnet5.4/Microsoft.Extensions.Configuration.dll",
+        "lib/dotnet5.4/Microsoft.Extensions.Configuration.xml",
+        "lib/net451/Microsoft.Extensions.Configuration.dll",
+        "lib/net451/Microsoft.Extensions.Configuration.xml",
+        "lib/netcore50/Microsoft.Extensions.Configuration.dll",
+        "lib/netcore50/Microsoft.Extensions.Configuration.xml",
+        "Microsoft.Extensions.Configuration.1.0.0-rc1-final.nupkg.sha512",
+        "Microsoft.Extensions.Configuration.nuspec"
+      ]
+    },
+    "Microsoft.Extensions.Configuration.Abstractions/1.0.0-rc1-final": {
+      "type": "package",
+      "sha512": "xA7ObOlIswcx2qakv69kz0pnBizFJrmwxRxJyjPOHWfevF4W+OdolZsbKOc12kY7y5upqhAvNGWTblffMvADHA==",
+      "files": [
+        "lib/dotnet5.4/Microsoft.Extensions.Configuration.Abstractions.dll",
+        "lib/dotnet5.4/Microsoft.Extensions.Configuration.Abstractions.xml",
+        "lib/net451/Microsoft.Extensions.Configuration.Abstractions.dll",
+        "lib/net451/Microsoft.Extensions.Configuration.Abstractions.xml",
+        "lib/netcore50/Microsoft.Extensions.Configuration.Abstractions.dll",
+        "lib/netcore50/Microsoft.Extensions.Configuration.Abstractions.xml",
+        "Microsoft.Extensions.Configuration.Abstractions.1.0.0-rc1-final.nupkg",
+        "Microsoft.Extensions.Configuration.Abstractions.1.0.0-rc1-final.nupkg.sha512",
+        "Microsoft.Extensions.Configuration.Abstractions.nuspec"
+      ]
+    },
+    "Microsoft.Extensions.Configuration.FileExtensions/1.0.0-rc1-final": {
+      "type": "package",
+      "sha512": "w2x8nqrp2YUgNBJuZ3SUmexBtjaoZFzCQtObRTjrE4GWceFEmaLZtXFvs4n9IgRQkOqqCza7Fv7NXnD9m2emjQ==",
+      "files": [
+        "lib/dotnet5.4/Microsoft.Extensions.Configuration.FileExtensions.dll",
+        "lib/dotnet5.4/Microsoft.Extensions.Configuration.FileExtensions.xml",
+        "lib/net451/Microsoft.Extensions.Configuration.FileExtensions.dll",
+        "lib/net451/Microsoft.Extensions.Configuration.FileExtensions.xml",
+        "lib/netcore50/Microsoft.Extensions.Configuration.FileExtensions.dll",
+        "lib/netcore50/Microsoft.Extensions.Configuration.FileExtensions.xml",
+        "Microsoft.Extensions.Configuration.FileExtensions.1.0.0-rc1-final.nupkg.sha512",
+        "Microsoft.Extensions.Configuration.FileExtensions.nuspec"
+      ]
+    },
+    "Microsoft.Extensions.Configuration.Json/1.0.0-rc1-final": {
+      "type": "package",
+      "sha512": "9v+RpswnXEpAP5mx8J1w1yZZT2pPtMBTnOAauNh2c9ju5Dhq3ljxvbm0S9j6o5F/EFSLlbfN/brxTJN3qa/upw==",
+      "files": [
+        "lib/dotnet5.4/Microsoft.Extensions.Configuration.Json.dll",
+        "lib/dotnet5.4/Microsoft.Extensions.Configuration.Json.xml",
+        "lib/net451/Microsoft.Extensions.Configuration.Json.dll",
+        "lib/net451/Microsoft.Extensions.Configuration.Json.xml",
+        "lib/netcore50/Microsoft.Extensions.Configuration.Json.dll",
+        "lib/netcore50/Microsoft.Extensions.Configuration.Json.xml",
+        "Microsoft.Extensions.Configuration.Json.1.0.0-rc1-final.nupkg.sha512",
+        "Microsoft.Extensions.Configuration.Json.nuspec"
+      ]
+    },
+    "Microsoft.Extensions.Primitives/1.0.0-rc1-final": {
+      "type": "package",
+      "sha512": "oHWqBARJveyM7LctuqQqvsTC58hxoq0gGnHr6Qsxie71LIkZpfE21IklhSLOsqmv4QIpes/G6k1vZbAQ+cC/nw==",
+      "files": [
+        "lib/dotnet5.4/Microsoft.Extensions.Primitives.dll",
+        "lib/dotnet5.4/Microsoft.Extensions.Primitives.xml",
+        "lib/net451/Microsoft.Extensions.Primitives.dll",
+        "lib/net451/Microsoft.Extensions.Primitives.xml",
+        "lib/netcore50/Microsoft.Extensions.Primitives.dll",
+        "lib/netcore50/Microsoft.Extensions.Primitives.xml",
+        "Microsoft.Extensions.Primitives.1.0.0-rc1-final.nupkg",
+        "Microsoft.Extensions.Primitives.1.0.0-rc1-final.nupkg.sha512",
+        "Microsoft.Extensions.Primitives.nuspec"
+      ]
+    },
+    "Mono.Posix/4.0.0": {
+      "type": "package",
+      "sha512": "sAO6UFMLKU1ykPLaGBUmR+yNPLQhBO77EUblN2eydYrF6GPkvurRbHLDP8ImvZ8j2IOITOsFGnUIPXsDnyEUPQ==",
+      "files": [
+        "lib/net40/Mono.Posix.dll",
+        "Mono.Posix.4.0.0.nupkg.sha512",
+        "Mono.Posix.nuspec"
+      ]
+    },
+    "MySql.Data/6.9.8": {
+      "type": "package",
+      "sha512": "ZSkMKsB1J9Cb/nO3+GlfX/YttibU23y5ZQtn/xzzl3xfPK512wP1jNjiVG4AFvmeJrf02qHNc/GfXJGYYHN8Pg==",
+      "files": [
+        "CHANGES",
+        "content/app.config.transform",
+        "content/web.config.transform",
+        "lib/net20/MySql.Data.dll",
+        "lib/net20-cf/MySql.Data.CF.dll",
+        "lib/net40/MySql.Data.dll",
+        "lib/net45/MySql.Data.dll",
+        "MySql.Data.6.9.8.nupkg.sha512",
+        "MySql.Data.nuspec",
+        "Readme.txt"
+      ]
+    },
+    "MySql.Data.Entity/6.9.8": {
+      "type": "package",
+      "sha512": "jdMn+++xLDtdrTy4QYIWWoIsf2EGC4UACEkPcvWloD9Zty5KmlY8Zee9csJB9BpO3mlGzSNzc15vJmrg/Vv1vQ==",
+      "files": [
+        "CHANGES",
+        "content/app.config.transform",
+        "content/web.config.transform",
+        "lib/net40/MySql.Data.Entity.EF6.dll",
+        "lib/net45/MySql.Data.Entity.EF6.dll",
+        "MySql.Data.Entity.6.9.8.nupkg.sha512",
+        "MySql.Data.Entity.nuspec",
+        "Readme.txt"
+      ]
+    },
+    "Newtonsoft.Json/6.0.6": {
+      "type": "package",
+      "sha512": "w26uZNyCG5VeoKiEOJ4+9/o8koSofLKwHl7WLreIcp0U6r57L7WiRXmjp8MTKFw6dYNZ9AE0lw69WYbIhUsU9Q==",
+      "files": [
+        "lib/net20/Newtonsoft.Json.dll",
+        "lib/net20/Newtonsoft.Json.xml",
+        "lib/net35/Newtonsoft.Json.dll",
+        "lib/net35/Newtonsoft.Json.xml",
+        "lib/net40/Newtonsoft.Json.dll",
+        "lib/net40/Newtonsoft.Json.xml",
+        "lib/net45/Newtonsoft.Json.dll",
+        "lib/net45/Newtonsoft.Json.xml",
+        "lib/netcore45/Newtonsoft.Json.dll",
+        "lib/netcore45/Newtonsoft.Json.xml",
+        "lib/portable-net40+sl5+wp80+win8+wpa81/Newtonsoft.Json.dll",
+        "lib/portable-net40+sl5+wp80+win8+wpa81/Newtonsoft.Json.xml",
+        "lib/portable-net45+wp80+win8+wpa81+aspnetcore50/Newtonsoft.Json.dll",
+        "lib/portable-net45+wp80+win8+wpa81+aspnetcore50/Newtonsoft.Json.xml",
+        "Newtonsoft.Json.6.0.6.nupkg.sha512",
+        "Newtonsoft.Json.nuspec",
+        "tools/install.ps1"
+      ]
+    }
+  },
+  "projectFileDependencyGroups": {
+    "": [],
+    "DNX,Version=v4.5.1": [
+      "piSensorNet.DataModel >= 1.0.0",
+      "piSensorNet.WiringPi >= 1.0.0",
+      "piSensorNet.Common >= 1.0.0",
+      "EntityFramework >= 6.1.3",
+      "MySql.Data.Entity >= 6.9.8",
+      "fx/System.Data >= 4.0.0"
+    ]
+  }
+}

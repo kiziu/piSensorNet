@@ -1,0 +1,106 @@
+﻿@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Main";
+}
+
+@section BodyScripts
+{
+    <script type="text/javascript">
+        // ReSharper disable UnusedParameter
+        var dictionaryToString = function (oDictionary) {
+            var s = '{';
+
+            common.eachPair(oDictionary, function (key, value) { s += key + ': "' + value + '", '; });
+
+            s = s.substring(0, s.length - 2) + '}';
+
+            return s;
+        };
+
+        var arrayToString = function (aArray) {
+            var s = '';
+
+            aArray.forEach(function (e) { s += e + ', '; });
+
+            s = s.substring(0, s.length - 2);
+
+            return s;
+        };
+
+        piSensorNet.on('onNewModuleFunctions',
+            function (iModuleID, oFunctions) {
+                console.log('onNewModuleFunctions: ' + iModuleID + ', ' + dictionaryToString(oFunctions));
+            });
+
+        piSensorNet.on('onNewModule',
+            function (iModuleID, sModuleAddress) {
+                console.log('onNewModule: ' + arrayToString(common.argsToArray(arguments)));
+
+                var $ul = $('ul#modulesList');
+
+                $ul.append($('<li />').attr('data-moduleId', iModuleID).text(sModuleAddress));
+            });
+
+        piSensorNet.on('onNewTemperatureReading',
+            function (iModuleID, iSensorID, fValue, dCreated, dReceived) {
+                console.log('onNewTemperatureReading: ' + arrayToString(common.argsToArray(arguments)));
+
+                var $ul = $('ul#temperatureReadingsList');
+                var $li = $ul.find('[data-sensorId="' + iSensorID + '"]');
+
+                if (!$li.length) {
+                    $li = $('<li />').attr('data-sensorId', iSensorID);
+                    $ul.append($li);
+                }
+
+                $li.text(fValue + '°C @@ ' + dReceived);
+            });
+
+        piSensorNet.on('onChangedTemperatureSensorPeriod',
+            function (iModuleID, tPeriod) {
+                console.log('onChangedTemperatureSensorPeriod: ' + arrayToString(common.argsToArray(arguments)));
+            });
+
+        piSensorNet.on('onNewOneWireDevices',
+            function (iModuleID, oDevices) {
+                console.log('onNewOneWireDevices: ' + iModuleID + ', ' + dictionaryToString(oDevices));
+            });
+
+        piSensorNet.on('onNewVoltageReading',
+            function (iModuleID, fValue, dCreated, dReceived) {
+                console.log('onNewVoltageReading: ' + arrayToString(common.argsToArray(arguments)));
+            });
+
+
+        var listModules = function (oModules) {
+            var $ul = $('ul#modulesList');
+
+            $ul.empty();
+
+            common.eachPair(oModules,
+                function (key, value) { $ul.append($('<li />').attr('data-moduleId', key).text(value)); });
+        }
+
+        piSensorNet.onConnected(function () {
+            piSensorNet.call('listModules', null, listModules);
+        });
+        // ReSharper enable UnusedParameter
+    </script>
+}
+
+<div class="row">
+    <h3>Modules:</h3>
+
+    <ul id="modulesList"></ul>
+
+    <button id="btnRefresh" onclick="piSensorNet.handle(this, 'listModules', null, listModules)" data-require="hubConnection">Refresh</button>
+    <button id="btnIdentify" onclick="piSensorNet.handle(this, 'identify')" data-require="hubConnection">Identify</button>
+
+    <br/><br />
+
+    <h3>Temperatures:</h3>
+
+    <ul id="temperatureReadingsList"></ul>
+
+    <button id="btnReadTemperature" onclick="piSensorNet.handle(this, 'readTemperature', [null])" data-require="hubConnection">Read temperature</button>
+</div>

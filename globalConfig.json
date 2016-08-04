@@ -1,0 +1,15 @@
+{
+    "Settings": {
+        "ConnectionString": "Server=192.168.1.2;Port=3306;Database=piSensorNet;Uid=db;Pwd=dbpassword;CharSet=utf8;",
+        "BroadcastAddress": "eizik",
+        "PeriodUnitLengthInMs": "100",
+        "AddressDelimiter": "@",
+        "MessageIDDelimiter": "#",
+        "FunctionDelimiter": ":",
+        "FunctionQuery": "?",
+        "FunctionResultNameDelimiter": "=",
+        "FunctionResultDelimiter": ";",
+        "FunctionResultValueDelimiter": "|",
+        "SignalREngineFlagName": "iamengine"
+    }
+}

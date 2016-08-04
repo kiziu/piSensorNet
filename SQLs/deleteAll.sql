@@ -1,0 +1,12 @@
+DELETE FROM SentMessages;
+UPDATE Packets SET MessageID = NULL;
+DELETE FROM Messages;
+UPDATE PartialPackets SET PacketID = NULL;
+DELETE FROM PartialPackets;
+DELETE FROM ReceivedMessages;
+DELETE FROM Packets;
+DELETE FROM VoltageReadings;
+DELETE FROM TemperatureReadings;
+DELETE FROM TemperatureSensors;
+#DELETE FROM ModuleFunctions;
+#DELETE FROM Modules; 
