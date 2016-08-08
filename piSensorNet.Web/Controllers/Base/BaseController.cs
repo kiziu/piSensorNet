@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using Microsoft.AspNet.Mvc;
 
-namespace piSensorNet.Web.Controllers
+namespace piSensorNet.Web.Controllers.Base
 {
     public abstract class BaseController : Controller
     {

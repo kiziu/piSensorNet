@@ -9,12 +9,12 @@
           "System.ComponentModel.DataAnnotations"
         ],
         "compile": {
-          "lib/net45/EntityFramework.dll": {},
-          "lib/net45/EntityFramework.SqlServer.dll": {}
+          "lib/net45/EntityFramework.SqlServer.dll": {},
+          "lib/net45/EntityFramework.dll": {}
         },
         "runtime": {
-          "lib/net45/EntityFramework.dll": {},
-          "lib/net45/EntityFramework.SqlServer.dll": {}
+          "lib/net45/EntityFramework.SqlServer.dll": {},
+          "lib/net45/EntityFramework.dll": {}
         }
       },
       "Microsoft.AspNet.SignalR.Client/2.1.2": {
@@ -320,7 +320,6 @@
         "framework": "DNX,Version=v4.5.1",
         "dependencies": {
           "EntityFramework": "6.1.3",
-          "Microsoft.AspNet.SignalR.Client": "2.1.2",
           "piSensorNet.Common": "1.0.0",
           "piSensorNet.DataModel": "1.0.0"
         },
@@ -469,12 +468,12 @@
           "System.ComponentModel.DataAnnotations"
         ],
         "compile": {
-          "lib/net45/EntityFramework.dll": {},
-          "lib/net45/EntityFramework.SqlServer.dll": {}
+          "lib/net45/EntityFramework.SqlServer.dll": {},
+          "lib/net45/EntityFramework.dll": {}
         },
         "runtime": {
-          "lib/net45/EntityFramework.dll": {},
-          "lib/net45/EntityFramework.SqlServer.dll": {}
+          "lib/net45/EntityFramework.SqlServer.dll": {},
+          "lib/net45/EntityFramework.dll": {}
         }
       },
       "Microsoft.AspNet.SignalR.Client/2.1.2": {
@@ -780,7 +779,6 @@
         "framework": "DNX,Version=v4.5.1",
         "dependencies": {
           "EntityFramework": "6.1.3",
-          "Microsoft.AspNet.SignalR.Client": "2.1.2",
           "piSensorNet.Common": "1.0.0",
           "piSensorNet.DataModel": "1.0.0"
         },
@@ -929,12 +927,12 @@
           "System.ComponentModel.DataAnnotations"
         ],
         "compile": {
-          "lib/net45/EntityFramework.dll": {},
-          "lib/net45/EntityFramework.SqlServer.dll": {}
+          "lib/net45/EntityFramework.SqlServer.dll": {},
+          "lib/net45/EntityFramework.dll": {}
         },
         "runtime": {
-          "lib/net45/EntityFramework.dll": {},
-          "lib/net45/EntityFramework.SqlServer.dll": {}
+          "lib/net45/EntityFramework.SqlServer.dll": {},
+          "lib/net45/EntityFramework.dll": {}
         }
       },
       "Microsoft.AspNet.SignalR.Client/2.1.2": {
@@ -1240,7 +1238,6 @@
         "framework": "DNX,Version=v4.5.1",
         "dependencies": {
           "EntityFramework": "6.1.3",
-          "Microsoft.AspNet.SignalR.Client": "2.1.2",
           "piSensorNet.Common": "1.0.0",
           "piSensorNet.DataModel": "1.0.0"
         },

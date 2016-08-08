@@ -49,7 +49,7 @@ namespace piSensorNet.Common.Extensions
         /// <summary>
         /// Does not alter the underlying dictionary.
         /// </summary>
-        public static IReadOnlyDictionary<TKey, TValue> AsReadOnly<TKey, TValue>(this Dictionary<TKey, TValue> dictionary) 
+        public static IReadOnlyDictionary<TKey, TValue> ReadOnly<TKey, TValue>(this Dictionary<TKey, TValue> dictionary) 
             => dictionary;
     }
 }

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
 using piSensorNet.Common.Custom;
@@ -15,12 +14,17 @@ using piSensorNet.DataModel.Entities;
 using piSensorNet.DataModel.Enums;
 using piSensorNet.DataModel.Extensions;
 using piSensorNet.Common.System;
+using piSensorNet.Engine.SignalR;
+using piSensorNet.Logic;
 using piSensorNet.Logic.FunctionHandlers.Base;
+using Module = piSensorNet.DataModel.Entities.Module;
 
-[assembly:InternalsVisibleTo("piSensorNet.Tests")]
+[assembly: InternalsVisibleTo("piSensorNet.Tests")]
 
 namespace piSensorNet.Engine
 {
+    public delegate void UserFunctionDelegate(IReadOnlyDictionary<string, int> modules);
+
     public static class EngineMain
     {
         private static readonly EventWaitHandle WaitHandle = new AutoResetEvent(false);
@@ -31,6 +35,7 @@ namespace piSensorNet.Engine
                 {SignalTypeEnum.Quit, QuitSignalHandler},
                 {SignalTypeEnum.Interrupt, QuitSignalHandler},
                 {SignalTypeEnum.User1, NewPartialPacketsToMergeSignalHandler},
+                {SignalTypeEnum.HangUp, RedoCacheSignalHandler},
             };
 
 
@@ -52,7 +57,7 @@ namespace piSensorNet.Engine
 
         public static int Main(string[] args)
         {
-            Logger("Initializing Engine...");
+            Logger("Main: Initializing Engine...");
 
             var recreate = args.Any(i => String.Equals(i, "recreate", StringComparison.InvariantCultureIgnoreCase));
             var recreateOnly = args.Any(i => String.Equals(i, "recreateOnly", StringComparison.InvariantCultureIgnoreCase));
@@ -61,6 +66,30 @@ namespace piSensorNet.Engine
             int? serialProcessID = null;
             if (!standalone)
                 serialProcessID = FindSerialProcessID(Configuration, recreate || recreateOnly, Logger);
+            
+            /*
+            Logger("Main: Compiling...");
+
+            var methodBody = "Console.WriteLine(\"works! \" + modules[\"kizior\"]);";
+            var result = CompileHelper.CompileTo<UserFunctionDelegate>(methodBody);
+            
+            if (!result.IsSuccessful)
+            {
+                Logger("Errors:");
+                result.CompilerErrors.Each(e => Console.WriteLine($"({e.Line}, {e.Column}) [{e.ErrorNumber}] {e.ErrorText}"));
+
+                return -1;
+            }
+
+            Logger("Main: Done!");
+            Console.WriteLine(result.Body);
+            result.Method(new Dictionary<string, int>
+                                    {
+                                        {"kizior", 13}
+                                    });
+
+            return -1;
+            */
 
             PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString, recreate || recreateOnly);
 
@@ -68,45 +97,31 @@ namespace piSensorNet.Engine
 
             if (recreateOnly)
             {
-                Logger("Database recreated, exiting!");
+                Logger("Main: Database recreated, exiting!");
 
                 return 0;
             }
 
             if (!recreate && !standalone && args.Length > 0)
             {
-                Logger($"Wrong arguments given: '{args.Join(" ")}'.");
+                Logger($"Main: ERROR: Wrong arguments given: '{args.Join(" ")}'.");
 
                 return 1;
             }
 
-            Logger("Context initialized!");
+            Logger("Main: Context initialized!");
 
-            using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
-            {
-                InternalCacheModules(context);
-
-                var cachedFunctions = CacheFunctions(context);
-                Functions = cachedFunctions.Item1;
-                InverseFunctions = cachedFunctions.Item2;
-
-
-                var cachedFunctionHandlers = CacheFunctionHandlers(Functions);
-                FunctionHandlers = cachedFunctionHandlers.Item1;
-                QueryableFunctionHandlers = cachedFunctionHandlers.Item2;
-            }
+            BuildCache();
 
             //Demo();
             //return 666;
 
-            var handler = Signal.Handle(SignalHandlers);
-
-            Logger("Cache built!");
-
             DisposalQueue toDispose;
             var hubProxy = InitializeHubConnection(Configuration, ModuleConfiguration, InternalHandleMessage, InverseModules, Functions, serialProcessID, out toDispose, Logger);
 
-            Logger("Started!");
+            var handler = Signal.Handle(SignalHandlers);
+
+            Logger("Main: Started!");
 
             while (!_doQuit)
             {
@@ -121,26 +136,44 @@ namespace piSensorNet.Engine
 
                     using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
                     {
-                        _pollPackets = MergePackets(context, ModuleConfiguration, Functions, InverseFunctions, Modules, hubProxy, InternalCacheModules, Logger);
+                        _pollPackets = MergePackets(context, ModuleConfiguration, Functions, InverseFunctions, Modules, InternalCacheModules, Logger);
 
                         if (_pollPackets)
                         {
                             _pollPackets = false;
 
-                            while (HandlePackets(context, ModuleConfiguration, Functions, FunctionHandlers, QueryableFunctionHandlers, hubProxy, serialProcessID, Logger)) {}
+                            while (HandlePackets(context, ModuleConfiguration, Functions, FunctionHandlers, QueryableFunctionHandlers, hubProxy, serialProcessID, Logger)) { }
                         }
                     }
                 }
             }
 
-            Logger("Stopping...");
+            Logger("Main: Stopping...");
 
             toDispose?.Dispose();
             handler.Dispose();
 
-            Logger("Stopped!");
+            Logger("Main: Stopped!");
 
             return 0;
+        }
+
+        private static void BuildCache()
+        {
+            using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
+            {
+                InternalCacheModules(context);
+
+                var cachedFunctions = CacheFunctions(context);
+                Functions = cachedFunctions.Item1;
+                InverseFunctions = cachedFunctions.Item2;
+
+                var cachedFunctionHandlers = CacheFunctionHandlers(Functions);
+                FunctionHandlers = cachedFunctionHandlers.Item1;
+                QueryableFunctionHandlers = cachedFunctionHandlers.Item2;
+            }
+
+            Logger("BuildCache: Cache built!");
         }
 
         private static Tuple<IReadOnlyDictionary<string, int>, IReadOnlyDictionary<int, string>> InternalCacheModules(PiSensorNetDbContext context)
@@ -164,10 +197,10 @@ namespace piSensorNet.Engine
 
                 context.Modules
                        .Add(new Module(address)
-                            {
-                                FriendlyName = address,
-                                Description = "Test module",
-                            }
+                       {
+                           FriendlyName = address,
+                           Description = "Test module",
+                       }
                            .Modify(i => i.ModuleFunctions.Add(context.Functions.Select(f => new ModuleFunction(i, f))))
                            .Modify(i => i.Packets.Add(new[]
                                                       {
@@ -185,7 +218,7 @@ namespace piSensorNet.Engine
 
                 // ReSharper disable once PossibleInvalidOperationException
                 var functionHandler = FunctionHandlers[packet.FunctionID.Value];
-                var taskQueue = new Queue<Func<IHubProxy, Task>>();
+                var taskQueue = new Queue<Action<IMainHubEngine>>();
 
                 functionHandler.Handle(ModuleConfiguration, context, packet, QueryableFunctionHandlers, Functions, ref taskQueue);
 
@@ -205,21 +238,19 @@ namespace piSensorNet.Engine
 
             var nameFragment = configuration["Settings:SerialProcessNameFragment"];
 
-            logger($"Searching for ID of process with name fragment '{nameFragment}'...");
-
             var pid = Processess.FindByFragment(nameFragment, StringComparison.InvariantCulture, "sudo");
             if (!pid.HasValue)
             {
-                logger($"ERROR: Serial process with name fragment '{nameFragment}' not found!");
+                logger($"FindSerialProcessID: ERROR: Serial process with name fragment '{nameFragment}' not found!");
                 Environment.Exit(-1);
             }
 
-            logger($"Found process {pid.Value}!");
+            logger($"FindSerialProcessID: Found process #{pid.Value} with name fragment '{nameFragment}!");
 
             return pid.Value;
         }
 
-        private static IHubProxy InitializeHubConnection(IConfiguration configuration, IModuleConfiguration moduleConfiguration, Action<string, int?, FunctionTypeEnum, bool, string, IReadOnlyDictionary<int, string>, IModuleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>>, int?, IHubProxy, Action<string>> handler, IReadOnlyDictionary<int, string> inverseModules, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
+        private static IMainHubEngine InitializeHubConnection(IConfiguration configuration, IModuleConfiguration moduleConfiguration, Action<string, int?, FunctionTypeEnum, bool, string, IReadOnlyDictionary<int, string>, IModuleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>>, int?, IHubProxy, Action<string>> handler, IReadOnlyDictionary<int, string> inverseModules, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
         {
             toDispose = new DisposalQueue();
 
@@ -230,6 +261,8 @@ namespace piSensorNet.Engine
                         configuration["Settings:SignalREngineFlagName"], true.ToString().ToLowerInvariant()
                     }
                 });
+
+            hubConnection.StateChanged += change => logger($"InitializeHubConnection: StateChanged: '{change.OldState}' -> '{change.NewState}'!");
 
             var hubProxy = hubConnection.CreateHubProxy(configuration["Settings:SignalRHubName"]);
 
@@ -247,17 +280,17 @@ namespace piSensorNet.Engine
             }
             catch (Exception e)
             {
-                logger($"Error while initializing hub connection: {e.Message}.");
+                logger($"InitializeHubConnection: ERROR: Exception occurred while initializing hub connection: {e.Message}.");
 
                 toDispose = null;
                 return null;
             }
 
-            logger($"Connection to hub started, ID {hubConnection.ConnectionId}!");
+            logger($"InitializeHubConnection: Connection to hub started with ID '{hubConnection.ConnectionId}'!");
 
             toDispose.Enqueue(hubConnection);
 
-            return hubProxy;
+            return new MainHubEngineProxy(hubProxy);
         }
 
         #endregion
@@ -299,10 +332,10 @@ namespace piSensorNet.Engine
             var modules = context.Modules
                                  .AsNoTracking()
                                  .Select(i => new
-                                              {
-                                                  i.ID,
-                                                  i.Address
-                                              })
+                                 {
+                                     i.ID,
+                                     i.Address
+                                 })
                                  .ToDictionary(i => i.Address, i => i.ID);
 
             var inverseModules = modules.ToDictionary(i => i.Value, i => i.Key);
@@ -315,11 +348,11 @@ namespace piSensorNet.Engine
             var functions = context.Functions
                                    .AsNoTracking()
                                    .Select(i => new
-                                                {
-                                                    i.FunctionType,
-                                                    i.ID,
-                                                    i.Name,
-                                                })
+                                   {
+                                       i.FunctionType,
+                                       i.ID,
+                                       i.Name,
+                                   })
                                    .ToDictionary(i => i.FunctionType, i => KeyValuePair.Create(i.ID, i.Name));
 
             var inverseFunctions = functions.ToDictionary(i => i.Value.Value, i => i.Value.Key);
@@ -329,23 +362,23 @@ namespace piSensorNet.Engine
 
         #endregion
 
-        internal static bool MergePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, IReadOnlyDictionary<string, int> inverseFunctions, IReadOnlyDictionary<string, int> modules, IHubProxy hubProxy, Func<PiSensorNetDbContext, Tuple<IReadOnlyDictionary<string, int>, IReadOnlyDictionary<int, string>>> cacheModulesFunction, Action<string> logger)
+        internal static bool MergePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, IReadOnlyDictionary<string, int> inverseFunctions, IReadOnlyDictionary<string, int> modules, Func<PiSensorNetDbContext, Tuple<IReadOnlyDictionary<string, int>, IReadOnlyDictionary<int, string>>> cacheModulesFunction, Action<string> logger)
         {
-            logger("Merging packets...");
+            logger("MergePackets: Start...");
 
             var partialPackets = context.PartialPackets
                                         .AsNoTracking()
                                         .Where(i => i.State == PartialPacketStateEnum.New)
                                         .ToList();
 
-            logger("Done selecting..."); // ~14ms
+            //logger("MergePackets: Done selecting..."); // ~14ms
 
             var groupedPackets = partialPackets.GroupBy(i => new
-                                                             {
-                                                                 i.Address,
-                                                                 i.Number,
-                                                                 i.Total
-                                                             })
+            {
+                i.Address,
+                i.Number,
+                i.Total
+            })
                                                .ToList();
 
             var newModules = new Dictionary<string, Module>();
@@ -366,23 +399,23 @@ namespace piSensorNet.Engine
 
             if (newModules.Count > 0)
             {
-                logger("Done creating modules...");
+                logger("MergePackets: Done finding modules...");
 
                 context.SaveChanges();
 
-                logger("Done saving modules...");
+                logger("MergePackets: Done saving modules...");
 
                 modules = cacheModulesFunction(context).Item1;
             }
 
-            logger($"Done creating new modules, found {newModules.Count}!"); // 700us, no modules
+            logger($"MergePackets: Done creating new modules, found {newModules.Count}!"); // 700us, no modules
 
             var packetGroupWithPacket = new List<Tuple<Packet, IEnumerable<PartialPacket>>>(groupedPackets.Count);
             foreach (var packetGroup in groupedPackets)
             {
                 if (packetGroup.Count() != packetGroup.Key.Total)
                 {
-                    context.EnqueueQuery(PartialPacket.GenerateUpdate(context,
+                    context.EnqueueRaw(PartialPacket.GenerateUpdate(context,
                         new Dictionary<Expression<Func<PartialPacket, object>>, string>
                         {
                             {i => i.State, PartialPacketStateEnum.Fragmented.ToSql()}
@@ -411,10 +444,10 @@ namespace piSensorNet.Engine
                     text = text.Substring(functionName.Length + 1);
 
                 var packet = new Packet(moduleID, packetGroup.Key.Number, text, received)
-                             {
-                                 MessageID = messageID,
-                                 FunctionID = functionID,
-                             };
+                {
+                    MessageID = messageID,
+                    FunctionID = functionID,
+                };
 
                 context.Packets.Add(packet);
 
@@ -423,14 +456,14 @@ namespace piSensorNet.Engine
 
             if (packetGroupWithPacket.Count > 0)
             {
-                logger("Done parsing packet groups!"); // ~3ms
+                //logger("MergePackets: Done parsing packet groups!"); // ~3ms
 
                 context.SaveChanges();
 
-                logger("Saved packets!"); // ~30ms
+                logger("MergePackets: Saved changes!"); // ~23ms
 
                 packetGroupWithPacket.Each(p =>
-                    context.EnqueueQuery(PartialPacket.GenerateUpdate(context,
+                    context.EnqueueRaw(PartialPacket.GenerateUpdate(context,
                         new Dictionary<Expression<Func<PartialPacket, object>>, string>
                         {
                             {i => i.PacketID, p.Item1.ID.ToSql()},
@@ -438,19 +471,19 @@ namespace piSensorNet.Engine
                         },
                         new Tuple<Expression<Func<PartialPacket, object>>, string, string>(i => i.ID, "IN", String.Concat("(", p.Item2.Select(i => i.ID.ToString()).Join(", "), ")")))));
 
-                context.ExecuteQueries();
+                context.ExecuteRaw();
 
-                logger("Updated partial packets!"); // ~35ms
+                logger("MergePackets: Updated partial packets!"); // ~15ms, 1 packet
             }
 
-            logger($"Done merging packets, created {packetGroupWithPacket.Count}!");
+            logger($"MergePackets: Done, created {packetGroupWithPacket.Count} packet(s)!");
 
             return packetGroupWithPacket.Count > 0;
         }
 
-        internal static bool HandlePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, IReadOnlyDictionary<int, IFunctionHandler> functionHandlers, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IHubProxy hubProxy, int? serialProcessID, Action<string> logger)
+        internal static bool HandlePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, IReadOnlyDictionary<int, IFunctionHandler> functionHandlers, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IMainHubEngine hubProxy, int? serialProcessID, Action<string> logger)
         {
-            logger("Handling packets...");
+            logger("HandlePackets: Start...");
 
             var packets = context.Packets
                                  .Include(i => i.Module)
@@ -460,26 +493,28 @@ namespace piSensorNet.Engine
                                  .OrderBy(i => i.Received)
                                  .ToList();
 
-            logger("Done selecting...");
+            logger("HandlePackets: Done selecting..."); // ~21ms
 
             if (packets.Count == 0)
                 return false;
 
             var handleAgain = false;
             var newMesagesAdded = false;
-            var hubTasksQueue = new Queue<Func<IHubProxy, Task>>();
+            var hubTasksQueue = new Queue<Action<IMainHubEngine>>();
             foreach (var packet in packets)
             {
                 // ReSharper disable once PossibleInvalidOperationException
                 var handler = functionHandlers.GetValueOrDefault(packet.FunctionID.Value);
                 if (handler == null)
                 {
-                    context.EnqueueQuery(Packet.GenerateUpdate(context,
+                    context.EnqueueRaw(Packet.GenerateUpdate(context,
                         new Dictionary<Expression<Func<Packet, object>>, string>
                         {
                             {i => i.State, PacketStateEnum.Unhandled.ToSql()}
                         },
                         new Tuple<Expression<Func<Packet, object>>, string, string>(i => i.ID, "=", packet.ID.ToSql())));
+
+                    logger($"HandlePackets: Packet #{packet.ID} (function '{packet.Function.FunctionType}') could not be handled, no handler found!");
 
                     continue;
                 }
@@ -489,20 +524,25 @@ namespace piSensorNet.Engine
                 handleAgain = handleAgain || functionHandlerResult.ShouldHandlePacketsAgain;
                 newMesagesAdded = newMesagesAdded || functionHandlerResult.NewMessagesAdded;
 
-                context.EnqueueQuery(Packet.GenerateUpdate(context,
+                context.EnqueueRaw(Packet.GenerateUpdate(context,
                     new Dictionary<Expression<Func<Packet, object>>, string>
                     {
                         {i => i.State, functionHandlerResult.PacketState.ToSql()},
                         {i => i.Processed, DateTime.Now.ToSql()}
                     },
                     new Tuple<Expression<Func<Packet, object>>, string, string>(i => i.ID, "=", packet.ID.ToSql())));
+
+                logger($"HandlePackets: Packet #{packet.ID} processed to '{functionHandlerResult.PacketState}'" +
+                       $"{(functionHandlerResult.NewMessagesAdded ? ", new messaged were added" : String.Empty)}" +
+                       $"{(functionHandlerResult.ShouldHandlePacketsAgain ? ", requested another handling" : String.Empty)}" +
+                       "!");
             }
 
-            logger($"Done handling packets, found {packets.Count}!"); // ~71ms
+            logger($"HandlePackets: Done handling packets, processed {packets.Count}!"); // ~51ms
 
-            context.ExecuteQueries();
+            context.ExecuteRaw();
 
-            logger("Queries executed!"); // ~24ms
+            logger("HandlePackets: Queries executed!"); // ~13ms
 
             if (newMesagesAdded && serialProcessID.HasValue)
                 Signal.Send(serialProcessID.Value, SignalTypeEnum.User1);
@@ -510,20 +550,20 @@ namespace piSensorNet.Engine
             while (hubTasksQueue.Count > 0)
                 hubTasksQueue.Dequeue()(hubProxy);
 
-            logger($"Hub messages sent, {nameof(newMesagesAdded)}: {newMesagesAdded}!"); // ~12ms
+            logger($"HandlePackets: Hub message(s) sent{(newMesagesAdded ? ", Serial signaled about new message(s)" : String.Empty)}{(handleAgain ? ", packet(s) will be handled again" : String.Empty)}!"); // ~10ms
 
             return handleAgain;
         }
 
         internal static void HandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyDictionary<int, string> inverseModules, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, IHubProxy hubProxy, Action<string> logger)
-        { // ~37ms
-            logger($"Handling message from ${clientID} to @{moduleID ?? -1} - {functionType} {text ?? (isQuery ? "?" : String.Empty)}");
+        {
+            logger($"HandleMessage: Received message from ${clientID} to @{moduleID?.ToString() ?? "ALL"} - {functionType}{(text == null ? (isQuery ? "?" : String.Empty) : ":" + text)}");
 
             if (moduleID.HasValue && !inverseModules.ContainsKey(moduleID.Value))
             {
-                hubProxy.Invoke("error", $"Module #{moduleID.Value} does not exist.");
+                hubProxy.Invoke("error", clientID, $"Module #{moduleID.Value} does not exist.");
 
-                logger($"ERROR: Message not handled, module #{moduleID.Value} does not exist!");
+                logger($"HandleMessage: ERROR: Message not handled, module #{moduleID.Value} does not exist!");
 
                 return;
             }
@@ -532,9 +572,9 @@ namespace piSensorNet.Engine
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {
                 var message = new Message(functions[functionType].Key, isQuery)
-                              {
-                                  ModuleID = moduleID,
-                              };
+                {
+                    ModuleID = moduleID,
+                };
 
                 if (!isQuery)
                     message.Text = text;
@@ -546,7 +586,7 @@ namespace piSensorNet.Engine
                 messageID = message.ID;
             }
 
-            logger($"Message handled to #{messageID}!");
+            logger($"HandleMessage: Message handled to #{messageID}!"); // ~38ms
         }
 
         #region Signal Handlers
@@ -569,10 +609,17 @@ namespace piSensorNet.Engine
 
         private static void NewPartialPacketsToMergeSignalHandler(SignalTypeEnum signalType)
         {
-            Logger("Received new message to process signal!");
+            Logger("Received signal to process new message!");
 
             _pollPartialPackets = true;
             WaitHandle.Set();
+        }
+
+        private static void RedoCacheSignalHandler(SignalTypeEnum signalType)
+        {
+            Logger("Received signal to redo cache!");
+
+            BuildCache();
         }
 
         #endregion

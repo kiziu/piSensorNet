@@ -1,9 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure.DependencyResolution;
+using System.Data.Entity.Infrastructure.Pluralization;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
 using piSensorNet.Common.System;
 using piSensorNet.DataModel.Entities.Base;
 
@@ -25,28 +31,31 @@ namespace piSensorNet.DataModel.Context
                                                                                        .Where(EntityBaseType.IsAssignableFrom)
                                                                                        .Where(i => !i.IsAbstract && i.IsClass)
                                                                                        .ToList();
-
+        
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
             modelBuilder.Properties<DateTime>().Configure(i => i.HasPrecision(3));
             modelBuilder.Properties<DateTime?>().Configure(i => i.HasPrecision(3));
-            
+
             foreach (var entityType in EntityTypes)
-            {
-                var method = entityType.GetMethod(EntityBase.OnModelCreatingMethodName, BindingFlags.NonPublic | BindingFlags.Static);
-                if (method == null)
-                    continue;
+                OnEntityModelCreating(modelBuilder, entityType);
+        }
 
-                var hasProperSignature = HasProperSignature(entityType, method);
-                if (hasProperSignature > 0)
-                    throw new InvalidOperationException(
-                        $"Method '{entityType.Name}.{method.Name}' has incorrect signature. Error {hasProperSignature}.");
+        private static void OnEntityModelCreating(DbModelBuilder modelBuilder, Type entityType)
+        {
+            var method = entityType.GetMethod(EntityBase.OnModelCreatingMethodName, BindingFlags.NonPublic | BindingFlags.Static);
+            if (method == null)
+                return;
 
-                var entityMethod = EntityMethod.MakeGenericMethod(entityType);
-                var entityTypeConfiguration = entityMethod.Invoke(modelBuilder, null);
+            var hasProperSignature = HasProperSignature(entityType, method);
+            if (hasProperSignature > 0)
+                throw new InvalidOperationException(
+                    $"Method '{entityType.Name}.{method.Name}' has incorrect signature. Error {hasProperSignature}.");
 
-                method.Invoke(null, new[] {entityTypeConfiguration});
-            }
+            var entityMethod = EntityMethod.MakeGenericMethod(entityType);
+            var entityTypeConfiguration = entityMethod.Invoke(modelBuilder, null);
+
+            method.Invoke(null, new[] { entityTypeConfiguration });
         }
 
         private static int HasProperSignature(Type entityType, MethodInfo method)
@@ -55,9 +64,9 @@ namespace piSensorNet.DataModel.Context
                 return 1;
 
             var methodParameters = method.GetParameters();
-            if (methodParameters.Length != 1 )
+            if (methodParameters.Length != 1)
                 return 2;
-            
+
             var parameterType = methodParameters[0].ParameterType;
             if (!parameterType.IsConstructedGenericType)
                 return 3;

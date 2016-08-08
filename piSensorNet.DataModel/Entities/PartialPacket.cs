@@ -41,11 +41,11 @@ namespace piSensorNet.DataModel.Entities
         [MaxLength(5)]
         public string Address { get; set; }
 
-        public byte Number { get; set; }
+        public int Number { get; set; }
 
-        public byte Current { get; set; }
+        public int Current { get; set; }
 
-        public byte Total { get; set; }
+        public int Total { get; set; }
 
         [Column(TypeName = "char")]
         [MaxLength(32)]

@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
@@ -21,7 +19,7 @@ namespace piSensorNet.Logic.FunctionHandlers
 
         protected override Func<KeyValuePair<string, string>, string> GetAddress => pair => pair.Key;
 
-        protected override void ItemCallback(PiSensorNetDbContext context, Packet packet, Queue<Func<IHubProxy, Task>> hubtasksQueue, KeyValuePair<string, string> item, TemperatureSensor sensor, bool wasSensorCreated)
+        protected override void ItemCallback(PiSensorNetDbContext context, Packet packet, Queue<Action<IMainHubEngine>> hubMessageQueue, KeyValuePair<string, string> item, TemperatureSensor sensor, bool wasSensorCreated)
         {
             var reading = decimal.Parse(item.Value, CultureInfo.InvariantCulture);
 
@@ -29,8 +27,7 @@ namespace piSensorNet.Logic.FunctionHandlers
 
             context.TemperatureReadings.Add(temperatureReading);
 
-            hubtasksQueue.Enqueue(proxy =>
-                proxy.Invoke("newTemperatureReading", packet.Module.ID, sensor.ID, temperatureReading.Value, temperatureReading.Created, temperatureReading.Received));
+            hubMessageQueue.Enqueue(proxy => proxy.NewTemperatureReading(packet.Module.ID, temperatureReading.TemperatureSensorID, temperatureReading.Value, temperatureReading.Created, temperatureReading.Received));
         }
     }
 }

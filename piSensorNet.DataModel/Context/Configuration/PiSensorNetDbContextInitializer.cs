@@ -49,7 +49,7 @@ namespace piSensorNet.DataModel.Context
                                  {
                                      Description = "Request will set the period in 100ms resolution (up to " +
                                                    "65535 units, 6553.5 minutes) for temperature reporting. Response " +
-                                                   "will contain"
+                                                   "will contain currently set period."
                                  }
                              });
 

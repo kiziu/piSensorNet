@@ -1,7 +1,7 @@
 ﻿{
     "Settings": {
         "SerialProcessNameFragment": "piSensorNet.Serial",
-        "WebAddress": "http://192.168.1.2:8080/",
+        "WebAddress": "http://localhost:8080/",
         "SignalRHubName": "MainHub"
     }
 }

@@ -11,8 +11,8 @@ namespace piSensorNet.Common.Extensions
             string rightNeedle, bool includeNeedles = false)
         {
             var leftNeeedlePosition = haystack.IndexOf(leftNeedle, StringComparison.InvariantCulture);
-            var rightNeeedlePosition = haystack.IndexOf(rightNeedle, StringComparison.InvariantCulture);
-            if (leftNeeedlePosition < 0 || rightNeeedlePosition < 0 || leftNeeedlePosition >= rightNeeedlePosition)
+            var rightNeeedlePosition = leftNeeedlePosition < haystack.Length ? haystack.IndexOf(rightNeedle, leftNeeedlePosition + 1, StringComparison.InvariantCulture) : -1;
+            if (leftNeeedlePosition < 0 || rightNeeedlePosition < 0)
                 return null;
 
             if (includeNeedles)

@@ -18,8 +18,7 @@
             "dependencies": {
                 "piSensorNet.Common": "1.0.0",
                 "piSensorNet.DataModel": "1.0.0",
-                "EntityFramework": "6.1.3",
-                "Microsoft.AspNet.SignalR.Client": "2.1.2"
+                "EntityFramework": "6.1.3"
             }
         }
     }

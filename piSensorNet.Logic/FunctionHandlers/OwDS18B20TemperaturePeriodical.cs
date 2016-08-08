@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
@@ -18,24 +16,24 @@ namespace piSensorNet.Logic.FunctionHandlers
     {
         public FunctionTypeEnum FunctionType => FunctionTypeEnum.OwDS18B20TemperaturePeriodical;
 
-        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Func<IHubProxy, Task>> hubTasksQueue)
+        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
         {
             if (packet.Module.State != ModuleStateEnum.Identified)
                 return PacketStateEnum.Skipped;
 
-            Handle(moduleConfiguration, context, packet, packet.Text, hubTasksQueue);
+            Handle(moduleConfiguration, context, packet, packet.Text, hubMessageQueue);
 
             return PacketStateEnum.Handled;
         }
 
-        public void Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet originalPacket, string response, Queue<Func<IHubProxy, Task>> hubTasksQueue)
+        public void Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet originalPacket, string response, Queue<Action<IMainHubEngine>> hubMessageQueue)
         {
             var module = originalPacket.Module;
             var periodUnits = int.Parse(response);
             var periodLengthinMs = periodUnits * moduleConfiguration.PeriodUnitLengthInMs;
             var period = TimeSpan.FromMilliseconds(periodLengthinMs);
 
-            context.EnqueueQuery(TemperatureSensor.GenerateUpdate(
+            context.EnqueueRaw(TemperatureSensor.GenerateUpdate(
                 context,
                 new Dictionary<Expression<Func<TemperatureSensor, object>>, string>
                 {
@@ -43,9 +41,9 @@ namespace piSensorNet.Logic.FunctionHandlers
                 },
                 new Tuple<Expression<Func<TemperatureSensor, object>>, string, string>(i => i.ModuleID, "=", module.ID.ToSql())));
 
-            context.ExecuteQueries();
+            context.ExecuteRaw();
 
-            hubTasksQueue.Enqueue(proxy => proxy.Invoke("changedTemperatureSensorPeriod", module.ID, period));
+            hubMessageQueue.Enqueue(proxy => proxy.ChangedTemperatureSensorPeriod(module.ID, period));
         }
     }
 }

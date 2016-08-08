@@ -13,6 +13,13 @@ namespace piSensorNet.Common.Extensions
                 action(item);
         }
 
+        public static void Each<T>(this IEnumerable<T> items, [InstantHandle] Action<int, T> action)
+        {
+            var index = 0;
+            foreach (var item in items)
+                action(index++, item);
+        }
+
         public static IEnumerable<TItem> Where<TItem, TMember>(this IEnumerable<TItem> items, Func<TItem, TMember> memberSelector, Func<TMember, bool> memberPredicate)
         {
             return items.Select(i => new
@@ -36,5 +43,7 @@ namespace piSensorNet.Common.Extensions
 
             return collection;
         }
+
+        public static IReadOnlyCollection<T> ReadOnly<T>(this List<T> list) => list;
     }
 }

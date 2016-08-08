@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using piSensorNet.Common.Extensions;
+using piSensorNet.Common.System;
 
 namespace piSensorNet.DataModel.Extensions
 {
@@ -42,6 +43,32 @@ namespace piSensorNet.DataModel.Extensions
 
             return method;
         }
+
+        public static string ToSql(this object value, Type type)
+        {
+            type = type ?? value.GetType();
+            var nullable = type.GetNullable();
+
+            if (type == Reflector.Instance<string>.Type) return ToSql((string)value);
+
+            if (type == Reflector.Instance<bool>.Type) return ToSql((bool)value);
+            if (type == Reflector.Instance<bool?>.Type) return ToSql((bool?)value, ToSql);
+
+            if (type == Reflector.Instance<int>.Type) return ToSql((int)value);
+            if (type == Reflector.Instance<int?>.Type) return ToSql((int?)value, ToSql);
+
+            if (type == Reflector.Instance<decimal>.Type) return ToSql((decimal)value);
+            if (type == Reflector.Instance<decimal?>.Type) return ToSql((decimal?)value, ToSql);
+
+            if (type == Reflector.Instance<DateTime>.Type) return ToSql((DateTime)value);
+            if (type == Reflector.Instance<DateTime?>.Type) return ToSql((DateTime?)value, ToSql);
+
+            if (type == Reflector.Instance<TimeSpan>.Type) return ToSql((TimeSpan)value);
+            if (type == Reflector.Instance<TimeSpan?>.Type) return ToSql((TimeSpan?)value, ToSql);
+
+            if (type.IsEnum || nullable != null && nullable.IsEnum) return ToSql((int)value);
             
+            throw new NotSupportedException();
+        }
     }
 }

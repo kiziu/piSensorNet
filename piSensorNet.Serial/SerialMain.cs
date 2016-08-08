@@ -52,7 +52,7 @@ namespace piSensorNet.Serial
 
         public static int Main(string[] args)
         {
-            Logger("Initializing Serial Monitor..");
+            Logger("Main: Initializing Serial Monitor..");
 
             var engineProcessID = FindSerialProcessID(Configuration, Logger);
 
@@ -60,7 +60,7 @@ namespace piSensorNet.Serial
 
             //PiSensorNetDbContext.Logger = Console.Write;
 
-            Logger("Context initialized!");
+            Logger("Main: Context initialized!");
 
             var signalHandler = Signal.Handle(SignalHandlers);
 
@@ -69,7 +69,7 @@ namespace piSensorNet.Serial
             Pi.Pins.Setup(BroadcomPinNumberEnum.Gpio18, PinModeEnum.Input, PullUpModeEnum.Up);
             var interruptHandler = Pi.Interrupts.SetupPolled(BroadcomPinNumberEnum.Gpio18, InterruptModeEnum.FallingEdge, SerialInterruptHandler);
 
-            Logger("Started!");
+            Logger("Main: Started!");
 
             while (!_doQuit)
             {
@@ -99,7 +99,7 @@ namespace piSensorNet.Serial
                 _lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, ModuleConfiguration, MessageBuilder, Logger);
             }
 
-            Logger("Stopping...");
+            Logger("Main: Stopping...");
 
             interruptHandler.Dispose();
             Pi.Interrupts.Remove(BroadcomPinNumberEnum.Gpio18);
@@ -109,7 +109,7 @@ namespace piSensorNet.Serial
 
             signalHandler.Dispose();
 
-            Logger("Stopped!");
+            Logger("Main: Stopped!");
 
             return 0;
         }
@@ -120,17 +120,15 @@ namespace piSensorNet.Serial
                 throw new Exception("Linux only!");
 
             var nameFragment = configuration["Settings:EngineProcessNameFragment"];
-
-            logger($"Searching for ID of process with name fragment '{nameFragment}'...");
-
+            
             var pid = Processess.FindByFragment(nameFragment, StringComparison.InvariantCulture, "sudo");
             if (!pid.HasValue)
             {
-                logger($"ERROR: Engine process with name fragment '{nameFragment}' not found!");
+                logger($"FindSerialProcessID: ERROR: Engine process with name fragment '{nameFragment}' not found!");
                 Environment.Exit(-1);
             }
 
-            logger($"Found process {pid.Value}!");
+            logger($"FindSerialProcessID: Found process #{pid.Value} with name fragment '{nameFragment}!");
 
             return pid.Value;
         }
@@ -151,7 +149,7 @@ namespace piSensorNet.Serial
                     {
                         var item = buffer.ToString();
 
-                        logger($"Enqueuing item read from serial: '{item}'!");
+                        logger($"ReadSerial: Enqueuing item: '{item}'!");
 
                         receivedMessages.Enqueue(item);
                         buffer.Clear();
@@ -176,20 +174,20 @@ namespace piSensorNet.Serial
             if (receivedMessages.Count == 0)
                 return;
 
-            logger("Handling received messages...");
+            logger("HandleReceivedMessages: Start...");
 
             var arePacketsProcessed = false;
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {
                 while (receivedMessages.Count > 0)
                 {
-                    logger("Dequeing...");
+                    logger("HandleReceivedMessages: Dequeing...");
 
                     string text;
                     if (!receivedMessages.TryDequeue(out text))
                         continue;
 
-                    logger($"Processing '{text}'...");
+                    logger($"HandleReceivedMessages: Processing '{text}'...");
 
                     var isFailed = text.StartsWith("FAIL ", StringComparison.InvariantCultureIgnoreCase);
                     var isOk = text.StartsWith("OK ", StringComparison.InvariantCultureIgnoreCase);
@@ -198,14 +196,14 @@ namespace piSensorNet.Serial
                     {
                         if (!_lastMessageSentID.HasValue)
                         {
-                            logger($"! Message '{text} was not handled due to lack of {nameof(_lastMessageSentID)}!");
+                            logger($"HandleReceivedMessages: ERROR: Message '{text} was not handled due to lack of {nameof(_lastMessageSentID)}!");
                             continue;
                         }
 
                         var state = isOk ? MessageStateEnum.Completed : MessageStateEnum.Failed;
                         var error = isFailed ? text.Substring("FAIL ".Length) : null;
-
-                        context.EnqueueQuery(Message.GenerateUpdate(context,
+                        
+                        context.EnqueueRaw(Message.GenerateUpdate(context,
                             new Dictionary<Expression<Func<Message, object>>, string>
                             {
                                 {i => i.State, state.ToSql()},
@@ -213,9 +211,9 @@ namespace piSensorNet.Serial
                                 {i => i.Error, error.ToSql()},
                             },
                             new Tuple<Expression<Func<Message, object>>, string, string>(i => i.ID, "=", _lastMessageSentID.Value.ToSql())));
-
-                        logger($"Updated message #{_lastMessageSentID.Value} with state '{state}'!");
-
+                        
+                        logger($"HandleReceivedMessages: Updated message #{_lastMessageSentID.Value} to '{state}'!");
+                        
                         _lastMessageSentID = null;
                     }
                     else
@@ -232,13 +230,13 @@ namespace piSensorNet.Serial
 
                         arePacketsProcessed = true;
 
-                        logger("Processed message to partial packet!");
+                        logger("HandleReceivedMessages: Processed message to new partial packet!");
                     }
                 }
 
                 context.SaveChanges();
 
-                logger("Messages handled!"); // ~50ms
+                logger("HandleReceivedMessages: Done!"); // ~64ms, 4 messagess
             }
 
             if (arePacketsProcessed && engineProcessID.HasValue)
@@ -246,8 +244,8 @@ namespace piSensorNet.Serial
         }
 
         private static void PollMessagesToSend(Queue<Message> messagesToSend, IModuleConfiguration moduleConfiguration, Action<string> logger)
-        { // ~24ms, 1 message
-            logger("Polling messages to send...");
+        {
+            logger("PollMessagesToSend: Start...");
 
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {
@@ -265,7 +263,7 @@ namespace piSensorNet.Serial
                 foreach (var message in messages)
                     messagesToSend.Enqueue(message);
 
-                logger($"Enqueued {messages.Count} message(s) to send!");
+                logger($"PollMessagesToSend: Enqueued {messages.Count} messages(s)!"); // ~25ms, 1 message
             }
         }
 
@@ -300,20 +298,18 @@ namespace piSensorNet.Serial
             if (messagesToSend.Count == 0 || lastMessageSentID.HasValue)
                 return lastMessageSentID;
 
-            logger("Send message...");
+            logger("SendMessage: Start...");
 
             var messageToSend = messagesToSend.Dequeue();
             var text = AssembleMessage(messageBuilder, messageToSend, moduleConfiguration);
 
-            logger($"Putting '{text}'..."); // ~300us
+            logger($"SendMessage: Putting '{text}'..."); // <0.5ms
 
             Pi.Serial.Put(text);
-
-            logger("Put!");
-
+            
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {
-                context.EnqueueQuery(Message.GenerateUpdate(context,
+                context.EnqueueRaw(Message.GenerateUpdate(context,
                     new Dictionary<Expression<Func<Message, object>>, string>
                     {
                         {i => i.State, MessageStateEnum.Sent.ToSql()},
@@ -321,10 +317,10 @@ namespace piSensorNet.Serial
                     },
                     new Tuple<Expression<Func<Message, object>>, string, string>(i => i.ID, "=", messageToSend.ID.ToSql())));
 
-                context.ExecuteQueries();
+                context.ExecuteRaw();
             }
 
-            logger("Message sent!"); // ~20ms
+            logger("SendMessage: Message sent!"); // ~22ms
 
             return messageToSend.ID;
         }

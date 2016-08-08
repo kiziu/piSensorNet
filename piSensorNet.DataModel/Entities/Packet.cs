@@ -31,7 +31,7 @@ namespace piSensorNet.DataModel.Entities
 
         protected Packet() {}
 
-        public Packet(int moduleID, byte number, string text, DateTime received)
+        public Packet(int moduleID, int number, string text, DateTime received)
         {
             ModuleID = moduleID;
             Number = number;
@@ -39,7 +39,7 @@ namespace piSensorNet.DataModel.Entities
             Received = received;
         }
 
-        public Packet(Module module, byte number, string text, DateTime received)
+        public Packet(Module module, int number, string text, DateTime received)
         {
             Number = number;
             Text = text;
@@ -59,7 +59,7 @@ namespace piSensorNet.DataModel.Entities
 
         public int? FunctionID { get; set; } = null;
 
-        public byte Number { get; set; }
+        public int Number { get; set; }
 
         public PacketStateEnum State { get; set; } = PacketStateEnum.New;
 

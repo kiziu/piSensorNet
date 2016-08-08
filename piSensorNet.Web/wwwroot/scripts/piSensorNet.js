@@ -64,7 +64,8 @@
         console.log(functionName + ': calling...');
         piSensorNet.hub.server[functionName].apply(this, args)
             .done(function (result) {
-                console.log(functionName + ': done - ' + (result || '<null>'));
+                console.log(functionName + ': done');
+                console.log(result);
 
                 $.isFunction(callback) && callback.call(this, result);
 

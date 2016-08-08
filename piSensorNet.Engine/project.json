@@ -1,20 +1,16 @@
 {
     "version": "1.0.0",
-	
     "sdk": {
         "version": "1.0.0-rc1-update2"
     },
-	
     "compilationOptions": {
         "emitEntryPoint": true,
         "nowarn": [ "NU1006" ]
     },
-	
     "content": [
         "../globalConfig.json",
         "config.json"
     ],
-
     "frameworks": {
         "dnx451": {
             "frameworkAssemblies": {

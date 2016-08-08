@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
@@ -18,31 +16,32 @@ namespace piSensorNet.Logic.FunctionHandlers
     {
         public FunctionTypeEnum FunctionType => FunctionTypeEnum.Identify;
 
-        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Func<IHubProxy, Task>> hubTasksQueue)
+        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
         {
-            if (packet.Module.State != ModuleStateEnum.New)
+            var module = packet.Module;
+            if (module.State != ModuleStateEnum.New)
                 return PacketStateEnum.Redundant;
 
             context.Messages.Add(new Message(functions[FunctionTypeEnum.FunctionList].Key, false)
                                  {
-                                     Module = packet.Module
+                                     Module = module
                                  });
 
             context.Messages.Add(new Message(functions[FunctionTypeEnum.Report].Key, false)
                                  {
-                                     Module = packet.Module
+                                     Module = module
                                  });
 
-            packet.Module.State = ModuleStateEnum.Identified;
+            module.State = ModuleStateEnum.Identified;
 
-            context.EnqueueQuery(Module.GenerateUpdate(context,
+            context.EnqueueRaw(Module.GenerateUpdate(context,
                 new Dictionary<Expression<Func<Module, object>>, string>
                 {
                     {i => i.State, ModuleStateEnum.Identified.ToSql()},
                 },
                 new Tuple<Expression<Func<Module, object>>, string, string>(i => i.ID, "=", packet.ModuleID.ToSql())));
 
-            context.EnqueueQuery(Packet.GenerateUpdate(context,
+            context.EnqueueRaw(Packet.GenerateUpdate(context,
                 new Dictionary<Expression<Func<Packet, object>>, string>
                 {
                     {i => i.State, PacketStateEnum.New.ToSql()},
@@ -52,8 +51,7 @@ namespace piSensorNet.Logic.FunctionHandlers
             
             context.SaveChanges();
 
-            hubTasksQueue.Enqueue(hubProxy =>
-                hubProxy.Invoke("newModule", packet.Module.ID, packet.Module.Address));
+            hubMessageQueue.Enqueue(hubProxy => hubProxy.NewModule(module.ID, module.Address));
 
             return new FunctionHandlerResult(PacketStateEnum.Handled, true, true);
         }

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
 using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Context;
@@ -17,7 +15,7 @@ namespace piSensorNet.Logic.FunctionHandlers
     {
         public FunctionTypeEnum FunctionType => FunctionTypeEnum.Report;
 
-        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Func<IHubProxy, Task>> hubTasksQueue)
+        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
         {
             if (packet.Module.State != ModuleStateEnum.Identified)
                 return PacketStateEnum.Skipped;
@@ -37,7 +35,7 @@ namespace piSensorNet.Logic.FunctionHandlers
 
                 var handler = queryableFunctionHandlers.GetValueOrDefault(queryableFunctionPair.Key);
 
-                handler?.Handle(moduleConfiguration, context, packet, queryableFunctionPair.Value, hubTasksQueue);
+                handler?.Handle(moduleConfiguration, context, packet, queryableFunctionPair.Value, hubMessageQueue);
             }
 
             return PacketStateEnum.Handled;

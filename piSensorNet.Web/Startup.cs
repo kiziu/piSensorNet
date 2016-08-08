@@ -1,12 +1,11 @@
 using System;
 using System.Linq;
 using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Hosting;
-using Microsoft.AspNet.SignalR.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using piSensorNet.Common;
 using piSensorNet.DataModel.Context;
-using piSensorNet.Logic.Services;
 
 namespace piSensorNet.Web
 {
@@ -32,26 +31,22 @@ namespace piSensorNet.Web
 
             services.AddTransient<Func<PiSensorNetDbContext>>(provider =>
                 () => PiSensorNetDbContext.Connect(ConnectionString));
-
-            services.AddSingleton<ModulesService>();
-
+            
             services.AddSignalR(options =>
             {
                 options.Hubs.EnableDetailedErrors = true;
             });
         }
 
-        public void Configure(IApplicationBuilder applicationBuilder, IApplicationLifetime applicationLifetime, IConnectionManager connectionManager)
+        public void Configure(IApplicationBuilder applicationBuilder, JsonSerializer jsonSerializer)
         {
-            applicationBuilder.UseIISPlatformHandler();
+            applicationBuilder.UseIISPlatformHandler()
+                              .UseStaticFiles()
+                              .UseDeveloperExceptionPage()
+                              .UseMvcWithDefaultRoute()
+                              .UseSignalR();
 
-            applicationBuilder.UseStaticFiles();
-            
-            applicationBuilder.UseDeveloperExceptionPage();
-
-            applicationBuilder.UseMvcWithDefaultRoute();
-            
-            applicationBuilder.UseSignalR();
+            jsonSerializer.Converters.Add(new StringEnumConverter());
         }
     }
 }

@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.AspNet.SignalR;
 using Microsoft.AspNet.SignalR.Hubs;
-using piSensorNet.Logic.Services;
+using piSensorNet.DataModel.Context;
 
 namespace piSensorNet.Web.SignalR
 {
@@ -11,21 +12,20 @@ namespace piSensorNet.Web.SignalR
     {
         private static readonly string EngineQueryStringKey = Startup.Configuration["Settings:SignalREngineFlagName"];
         private static readonly string EngineQueryStringValue = true.ToString().ToLowerInvariant();
-        
+
+        private static string Now => DateTime.Now.ToString("O");
+
         public static string EngineClientConnectionID { get; private set; }
 
         public dynamic NonEngine => Clients.AllExcept(EngineClientConnectionID);
         public EngineProxy Engine => new EngineProxy(Clients.Client(EngineClientConnectionID), Context);
 
-        private readonly ModulesService _modulesService;
-
-        private static string Now => DateTime.Now.ToString("O");
-
-        public MainHub(ModulesService modulesService)
+        private readonly Func<PiSensorNetDbContext> _contextFactory;
+        public MainHub([NotNull] Func<PiSensorNetDbContext> contextFactory)
         {
-            if (modulesService == null) throw new ArgumentNullException(nameof(modulesService));
+            if (contextFactory == null) throw new ArgumentNullException(nameof(contextFactory));
 
-            _modulesService = modulesService;
+            _contextFactory = contextFactory;
         }
 
         public override Task OnDisconnected(bool stopCalled)
