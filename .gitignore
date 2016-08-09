@@ -3,5 +3,6 @@ bin/
 obj/
 /piSensorNet.Web/wwwroot/lib/
 
+project.lock.json
 *.suo
 *.user
