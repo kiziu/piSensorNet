@@ -40,12 +40,12 @@ namespace piSensorNet.Web
 
         public void Configure(IApplicationBuilder applicationBuilder, JsonSerializer jsonSerializer)
         {
-            applicationBuilder.UseIISPlatformHandler()
-                              .UseStaticFiles()
-                              .UseDeveloperExceptionPage()
-                              .UseMvcWithDefaultRoute()
-                              .UseSignalR();
-
+            applicationBuilder.UseIISPlatformHandler();
+            applicationBuilder.UseStaticFiles();
+            applicationBuilder.UseDeveloperExceptionPage();
+            applicationBuilder.UseMvcWithDefaultRoute();
+            applicationBuilder.UseSignalR();
+            
             jsonSerializer.Converters.Add(new StringEnumConverter());
         }
     }
