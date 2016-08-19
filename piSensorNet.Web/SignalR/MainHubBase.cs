@@ -29,8 +29,8 @@ namespace piSensorNet.Web.SignalR
         public override Task OnConnected()
         {
             TryIdentifyEngine(Context);
-
-            Console.WriteLine($"{Now}: Connected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine": "")}, transport: {Context.QueryString["transport"]}");
+            
+            Console.WriteLine($"{Now}: Connected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine": "")}, transport: {Context.QueryString["transport"]}, ip: {Context.Request.HttpContext.Connection.RemoteIpAddress}");
 
             return base.OnConnected();
         }
@@ -39,7 +39,7 @@ namespace piSensorNet.Web.SignalR
         {
             TryIdentifyEngine(Context);
 
-            Console.WriteLine($"{Now}: Reconnected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}, transport: {Context.QueryString["transport"]}");
+            Console.WriteLine($"{Now}: Reconnected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}, transport: {Context.QueryString["transport"]}, ip: {Context.Request.HttpContext.Connection.RemoteIpAddress}");
 
             return base.OnReconnected();
         }

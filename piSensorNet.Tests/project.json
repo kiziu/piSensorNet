@@ -2,7 +2,7 @@
     "version": "1.0.0",
     "testRunner": "xunit",
     "sdk": {
-        "version": "1.0.0-rc1-update2"
+        "version": "1.0.0-rc1-final"
     },
     "compilationOptions": {
         "nowarn": [ "NU1006" ]

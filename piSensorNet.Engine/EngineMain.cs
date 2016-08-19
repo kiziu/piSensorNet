@@ -58,6 +58,7 @@ namespace piSensorNet.Engine
 
         private static readonly Action<string> Logger = i => Console.WriteLine($"{DateTime.Now.ToString("O")}: {i}");
 
+        // ReSharper disable InconsistentNaming
         private static IReadOnlyMap<string, int> ModuleAddresses;
         private static IReadOnlyMap<FunctionTypeEnum, int> FunctionTypes;
         private static IReadOnlyMap<string, int> FunctionNames;
@@ -67,6 +68,7 @@ namespace piSensorNet.Engine
         private static IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> TriggerSourceHandlers;
         private static IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> TriggerDependencyHandlers;
         private static IReadOnlyDictionary<int, TriggerDelegate> TriggerDelegates;
+        // ReSharper enable InconsistentNaming
 
         private static readonly ConcurrentQueue<TriggerSource> AbsoluteTimeTriggers = new ConcurrentQueue<TriggerSource>();
 
@@ -124,7 +126,7 @@ namespace piSensorNet.Engine
             DisposalQueue toDispose;
             var hubProxy = InitializeHubConnection(Configuration, ModuleConfiguration, InternalHandleMessage, ModuleAddresses, FunctionTypes, serialProcessID, out toDispose, Logger);
 
-            toDispose.Enqueue(Signal.Handle(SignalHandlers));
+            toDispose += Signal.Handle(SignalHandlers);
 
             var timer = new Timer(1000);
             timer.Elapsed += HandleTimerTick;
@@ -290,13 +292,13 @@ namespace piSensorNet.Engine
 
             var hubProxy = hubConnection.CreateHubProxy(configuration["Settings:SignalRHubName"]);
 
-            toDispose.Enqueue(hubProxy.On<string, int?, FunctionTypeEnum, string>("sendMessage",
+            toDispose += hubProxy.On<string, int?, FunctionTypeEnum, string>("sendMessage",
                 (clientID, moduleID, functionType, text)
-                    => handler(clientID, moduleID, functionType, false, text, moduleAddresses, moduleConfiguration, functionTypes, serialProcessID, hubProxy, logger)));
+                    => handler(clientID, moduleID, functionType, false, text, moduleAddresses, moduleConfiguration, functionTypes, serialProcessID, hubProxy, logger));
 
-            toDispose.Enqueue(hubProxy.On<string, int?, FunctionTypeEnum>("sendQuery",
+            toDispose += hubProxy.On<string, int?, FunctionTypeEnum>("sendQuery",
                 (clientID, moduleID, functionType)
-                    => handler(clientID, moduleID, functionType, true, null, moduleAddresses, moduleConfiguration, functionTypes, serialProcessID, hubProxy, logger)));
+                    => handler(clientID, moduleID, functionType, true, null, moduleAddresses, moduleConfiguration, functionTypes, serialProcessID, hubProxy, logger));
 
             try
             {
@@ -312,7 +314,7 @@ namespace piSensorNet.Engine
 
             logger($"InitializeHubConnection: Connection to hub started with ID '{hubConnection.ConnectionId}'!");
 
-            toDispose.Enqueue(hubConnection);
+            toDispose += hubConnection;
 
             return new MainHubEngineProxy(hubProxy);
         }
@@ -506,13 +508,6 @@ namespace piSensorNet.Engine
             {
                 if (packetGroup.Count() != packetGroup.Key.Total)
                 {
-                    //context.EnqueueRaw(PartialPacket.GenerateUpdate(context,
-                    //    new Dictionary<Expression<Func<PartialPacket, object>>, string>
-                    //    {
-                    //        {i => i.State, PartialPacketStateEnum.Fragmented.ToSql()}
-                    //    },
-                    //    new Tuple<Expression<Func<PartialPacket, object>>, string, string>(i => i.ID, "IN", String.Concat("(", packetGroup.Select(i => i.ID.ToString()).Join(", "), ")"))));
-
                     context.EnqueueUpdate<PartialPacket>(
                         i => i.State == PartialPacketStateEnum.Fragmented,
                         i => packetGroup.Select(ii => ii.ID).Contains(i.ID));
@@ -557,15 +552,6 @@ namespace piSensorNet.Engine
 
                 logger("MergePackets: Saved changes!"); // ~23ms
 
-                //packetGroupWithPacket.Each(p =>
-                //    context.EnqueueRaw(PartialPacket.GenerateUpdate(context,
-                //        new Dictionary<Expression<Func<PartialPacket, object>>, string>
-                //        {
-                //            {i => i.PacketID, p.Item1.ID.ToSql()},
-                //            {i => i.State, PartialPacketStateEnum.Merged.ToSql()},
-                //        },
-                //        new Tuple<Expression<Func<PartialPacket, object>>, string, string>(i => i.ID, "IN", String.Concat("(", p.Item2.Select(i => i.ID.ToString()).Join(", "), ")")))));
-
                 packetGroupWithPacket.Each(p =>
                     context.EnqueueUpdate<PartialPacket>(
                         i => i.PacketID == p.Item1.ID && i.State == PartialPacketStateEnum.Merged,
@@ -609,13 +595,6 @@ namespace piSensorNet.Engine
                 var handler = functionHandlers.GetValueOrDefault(packet.Function.FunctionType);
                 if (handler == null)
                 {
-                    //context.EnqueueRaw(Packet.GenerateUpdate(context,
-                    //    new Dictionary<Expression<Func<Packet, object>>, string>
-                    //    {
-                    //        {i => i.State, PacketStateEnum.Unhandled.ToSql()}
-                    //    },
-                    //    new Tuple<Expression<Func<Packet, object>>, string, string>(i => i.ID, "=", packet.ID.ToSql())));
-
                     context.EnqueueUpdate<Packet>(
                         i => i.State == PacketStateEnum.Unhandled,
                         i => i.ID == packet.ID);
@@ -631,14 +610,6 @@ namespace piSensorNet.Engine
 
                 handleAgain = handleAgain || functionHandlerResult.ShouldHandlePacketsAgain;
                 newMesagesAdded = newMesagesAdded || functionHandlerResult.NewMessagesAdded;
-
-                //context.EnqueueRaw(Packet.GenerateUpdate(context,
-                //    new Dictionary<Expression<Func<Packet, object>>, string>
-                //    {
-                //        {i => i.State, functionHandlerResult.PacketState.ToSql()},
-                //        {i => i.Processed, DateTime.Now.ToSql()}
-                //    },
-                //    new Tuple<Expression<Func<Packet, object>>, string, string>(i => i.ID, "=", packet.ID.ToSql())));
 
                 context.EnqueueUpdate<Packet>(
                     i => i.State == functionHandlerResult.PacketState && i.Processed == DateTime.Now,

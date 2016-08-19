@@ -12,7 +12,6 @@
         "FunctionResultDelimiter": ";",
         "FunctionResultValueDelimiter": "|",
         "SignalREngineFlagName": "iamengine",
-        "SignalRSerialFlagName": "iamserial",
         "WebAddress": "http://localhost:8080/",
         "SignalRHubName": "MainHub"
     }

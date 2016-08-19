@@ -8,7 +8,7 @@ using piSensorNet.DataModel.Entities.Base;
 
 namespace piSensorNet.DataModel.Entities
 {
-    public class TemperatureSensor : EntityBase<TemperatureSensor>
+    public class TemperatureSensor : EntityBase
     {
         internal static void OnModelCreating(EntityTypeConfiguration<TemperatureSensor> entityTypeConfiguration)
         {

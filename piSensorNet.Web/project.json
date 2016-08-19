@@ -2,7 +2,7 @@
     "version": "1.0.0",
 
     "sdk": {
-        "version": "1.0.0-rc1-update2"
+        "version": "1.0.0-rc1-final"
     },
 
     "compilationOptions": {
@@ -48,6 +48,5 @@
                 "Microsoft.AspNet.Tooling.Razor": "1.0.0-rc1-final"
             }
         }
-    },
-    "userSecretsId": "aspnet-piSensorNet.Web-20160809122158"
+    }
 }

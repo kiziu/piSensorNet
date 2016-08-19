@@ -382,8 +382,9 @@ namespace piSensorNet.DataModel.Context
                     }
                     catch (TargetInvocationException e)
                     {
-                        if (e.InnerException is EntityCommandExecutionException)
-                            exceptions.Add(table.Name + ": " + ((EntityCommandExecutionException)e.InnerException).InnerException.Message);
+                        var entityCommandExecutionException = e.InnerException as EntityCommandExecutionException;
+                        if (entityCommandExecutionException != null)
+                            exceptions.Add(table.Name + ": " + entityCommandExecutionException.InnerException.Message);
                         else
                             exceptions.Add(table.Name + ": " + e.InnerException.Message);
                     }

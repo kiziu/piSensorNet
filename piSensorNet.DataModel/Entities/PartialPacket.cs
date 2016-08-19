@@ -8,7 +8,7 @@ using piSensorNet.DataModel.Enums;
 
 namespace piSensorNet.DataModel.Entities
 {
-    public class PartialPacket : EntityBase<PartialPacket>
+    public class PartialPacket : EntityBase
     {
         internal static void OnModelCreating(EntityTypeConfiguration<PartialPacket> entityTypeConfiguration)
         {

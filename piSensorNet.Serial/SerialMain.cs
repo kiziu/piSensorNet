@@ -6,7 +6,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
 using piSensorNet.Common.Custom;
 using piSensorNet.Common.Enums;
@@ -31,7 +30,6 @@ namespace piSensorNet.Serial
                 {SignalTypeEnum.Quit, QuitSignalHandler},
                 {SignalTypeEnum.Interrupt, QuitSignalHandler},
                 {SignalTypeEnum.User1, NeMessageToSendSignalHandler},
-                {SignalTypeEnum.User2, TestSignalHandler},
             };
 
         private static IConfiguration Configuration { get; } = Common.Configuration.Load("config.json");
@@ -54,113 +52,67 @@ namespace piSensorNet.Serial
         {
             Logger("Main: Initializing Serial Monitor..");
 
-            var engineProcessID = (int?)null;// FindSerialProcessID(Configuration, Logger);
+            var toDispose = new DisposalQueue();
+            var engineProcessID = FindSerialProcessID(Configuration, Logger);
 
-            //PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString);
+            PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString);
 
             //PiSensorNetDbContext.Logger = Console.Write;
 
             Logger("Main: Context initialized!");
 
-            DisposalQueue toDispose;
-            var hubProxy = InitializeHubConnection(Configuration, out toDispose, Logger);
+            toDispose += Signal.Handle(SignalHandlers);
 
-            toDispose.Enqueue(Signal.Handle(SignalHandlers));
-            
-            //Pi.Serial.Open();
+            Pi.Serial.Open();
 
-            //Pi.Pins.Setup(BroadcomPinNumberEnum.Gpio18, PinModeEnum.Input, PullUpModeEnum.Up);
-            //var interruptHandler = Pi.Interrupts.SetupPolled(BroadcomPinNumberEnum.Gpio18, InterruptModeEnum.FallingEdge, SerialInterruptHandler);
-            
+            Pi.Pins.Setup(BroadcomPinNumberEnum.Gpio18, PinModeEnum.Input, PullUpModeEnum.Up);
+
+            toDispose += Pi.Interrupts.SetupPolled(BroadcomPinNumberEnum.Gpio18, InterruptModeEnum.FallingEdge, SerialInterruptHandler);
+
             Logger("Main: Started!");
 
             while (!_doQuit)
             {
-                WaitHandle.WaitOne();
+                WaitHandle.WaitOne(_readSerial == 0 ? -1 : 3);
+
                 if (_readSerial > 0)
                 {
                     --_readSerial;
+                    if (ReadSerial(ReceivedMessages, Buffer, Logger))
+                    {
+                        ++_readSerial;
+                        continue;
+                    }
 
-                    Logger("Main: Sending message to engine via hub");
-                    hubProxy.Invoke("sendQuery", "some_ID", 666, FunctionTypeEnum.OwDS18B20TemperaturePeriodical);
+                    if (_readSerial > 0)
+                        continue;
                 }
-                //WaitHandle.WaitOne(_readSerial == 0 ? -1 : 3);
 
-                //if (_readSerial > 0)
-                //{
-                //    --_readSerial;
-                //    if (ReadSerial(ReceivedMessages, Buffer, Logger))
-                //    {
-                //        ++_readSerial;
-                //        continue;
-                //    }
+                HandleReceivedMessages(engineProcessID, ReceivedMessages, ModuleConfiguration, Logger);
 
-                //    if (_readSerial > 0)
-                //        continue;
-                //}
+                if (_pollMessagesToSend)
+                {
+                    _pollMessagesToSend = false;
+                    PollMessagesToSend(MessagesToSend, ModuleConfiguration, Logger);
+                }
 
-                //HandleReceivedMessages(engineProcessID, ReceivedMessages, ModuleConfiguration, Logger);
-
-                //if (_pollMessagesToSend)
-                //{
-                //    _pollMessagesToSend = false;
-                //    PollMessagesToSend(MessagesToSend, ModuleConfiguration, Logger);
-                //}
-
-                //_lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, ModuleConfiguration, MessageBuilder, Logger);
+                _lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, ModuleConfiguration, MessageBuilder, Logger);
             }
 
             Logger("Main: Stopping...");
-
-            //interruptHandler.Dispose();
-            //Pi.Interrupts.Remove(BroadcomPinNumberEnum.Gpio18);
-
-            //Pi.Serial.Flush();
-            //Pi.Serial.Close();
-
+            
             toDispose.Dispose();
+
+            Pi.Interrupts.Remove(BroadcomPinNumberEnum.Gpio18);
+
+            Pi.Serial.Flush();
+            Pi.Serial.Close();
 
             Logger("Main: Stopped!");
 
             return 0;
         }
-
-
-        private static IHubProxy InitializeHubConnection(IConfiguration configuration, out DisposalQueue toDispose, Action<string> logger)
-        {
-            toDispose = new DisposalQueue();
-
-            var hubConnection = new HubConnection(configuration["Settings:WebAddress"],
-                new Dictionary<string, string>
-                {
-                    {
-                        configuration["Settings:SignalRSerialFlagName"], true.ToString().ToLowerInvariant()
-                    }
-                });
-
-            hubConnection.StateChanged += change => logger($"InitializeHubConnection: StateChanged: '{change.OldState}' -> '{change.NewState}'!");
-
-            var hubProxy = hubConnection.CreateHubProxy(configuration["Settings:SignalRHubName"]);
-            
-            try
-            {
-                hubConnection.Start().Wait();
-            }
-            catch (Exception e)
-            {
-                logger($"InitializeHubConnection: ERROR: Exception occurred while initializing hub connection: {e.Message}.");
-
-                toDispose = null;
-                return null;
-            }
-
-            logger($"InitializeHubConnection: Connection to hub started with ID '{hubConnection.ConnectionId}'!");
-
-            toDispose.Enqueue(hubConnection);
-
-            return hubProxy;
-        }
-
+        
         private static int? FindSerialProcessID(IConfiguration configuration, Action<string> logger)
         {
             if (Constants.IsWindows)
@@ -360,14 +312,6 @@ namespace piSensorNet.Serial
             
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {
-                //context.EnqueueRaw(Message.GenerateUpdate(context,
-                //    new Dictionary<Expression<Func<Message, object>>, string>
-                //    {
-                //        {i => i.State, MessageStateEnum.Sent.ToSql()},
-                //        {i => i.Sent, DateTime.Now.ToSql()},
-                //    },
-                //    new Tuple<Expression<Func<Message, object>>, string, string>(i => i.ID, "=", messageToSend.ID.ToSql())));
-
                 context.EnqueueUpdate<Message>(
                     i => i.State == MessageStateEnum.Sent && i.Sent == DateTime.Now,
                     i => i.ID == messageToSend.ID);
@@ -403,14 +347,6 @@ namespace piSensorNet.Serial
             Logger("Received new message signal!");
 
             _pollMessagesToSend = true;
-            WaitHandle.Set();
-        }
-
-        private static void TestSignalHandler(SignalTypeEnum signalType)
-        {
-            Logger("Received test signal!");
-
-            ++_readSerial;
             WaitHandle.Set();
         }
 

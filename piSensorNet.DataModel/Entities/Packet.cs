@@ -9,7 +9,7 @@ using piSensorNet.DataModel.Entities.Base;
 
 namespace piSensorNet.DataModel.Entities
 {
-    public class Packet : EntityBase<Packet>
+    public class Packet : EntityBase
     {
         internal static void OnModelCreating(EntityTypeConfiguration<Packet> entityTypeConfiguration)
         {

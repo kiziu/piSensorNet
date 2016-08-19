@@ -2,7 +2,7 @@
     "version": "1.0.0",
 
     "sdk": {
-        "version": "1.0.0-rc1-update2"
+        "version": "1.0.0-rc1-final"
     },
 	
     "compilationOptions": {

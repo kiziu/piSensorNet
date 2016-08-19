@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace piSensorNet.Common.Custom
 {
@@ -15,21 +16,24 @@ namespace piSensorNet.Common.Custom
                 _queue.Dequeue().Dispose();
         }
 
-        public void Enqueue(IDisposable item)
+        [NotNull]
+        public DisposalQueue Enqueue([NotNull] IDisposable item)
         {
             _queue.Enqueue(item);
+
+            return this;
         }
 
         public int Count => _queue.Count;
 
-        public IEnumerator<IDisposable> GetEnumerator()
-        {
-            return _queue.GetEnumerator();
-        }
+        public IEnumerator<IDisposable> GetEnumerator() 
+            => _queue.GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() 
+            => GetEnumerator();
+
+        [NotNull]
+        public static DisposalQueue operator +([NotNull] DisposalQueue queue, [NotNull] IDisposable item) 
+            => queue.Enqueue(item);
     }
 }

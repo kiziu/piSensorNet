@@ -25,7 +25,7 @@
             }
         },
         "vs": {
-            "executablePath": "C:\\Users\\kiziu\\.dnx\\runtimes\\dnx-clr-win-x86.1.0.0-rc1-update2\\bin\\dnx.exe",
+            "executablePath": "C:\\Users\\kiziu\\.dnx\\runtimes\\dnx-clr-win-x64.1.0.0-rc1-final\\bin\\dnx.exe",
             "commandLineArgs": "web",
             "launchBrowser": false,
             "launchUrl": "http://localhost:8080/",
