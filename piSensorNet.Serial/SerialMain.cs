@@ -82,7 +82,7 @@ namespace piSensorNet.Serial
                     --_readSerial;
 
                     Logger("Main: Sending message to engine via hub");
-                    hubProxy.Invoke("sendMQuery", "some_ID", 666, FunctionTypeEnum.OwDS18B20TemperaturePeriodical);
+                    hubProxy.Invoke("sendQuery", "some_ID", 666, FunctionTypeEnum.OwDS18B20TemperaturePeriodical);
                 }
                 //WaitHandle.WaitOne(_readSerial == 0 ? -1 : 3);
 
