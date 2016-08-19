@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using piSensorNet.DataModel.Enums;
+using piSensorNet.Common.Enums;
 
 namespace piSensorNet.Logic
 {
     public interface IMainHubEngine
     {
         void Error(string clientID, string message);
-        void NewModuleFunctions(int moduleID, IReadOnlyCollection<FunctionTypeEnum> functions);
+        void NewModuleFunctions(int moduleID, IReadOnlyCollection<KeyValuePair<FunctionTypeEnum, string>> functions);
         void NewModule(int moduleID, string moduleAddress);
         void NewTemperatureReading(int moduleID, int sensorID, decimal value, DateTime created, DateTime received);
         void NewTemperatureSensor(int moduleID, int sensorID, string sensorAddress);

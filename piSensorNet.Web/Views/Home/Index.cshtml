@@ -6,11 +6,11 @@
 @section BodyScripts
 {
     <script type="text/javascript">
-        // ReSharper disable UnusedParameter
+        @*// ReSharper disable UnusedParameter
         var dictionaryToString = function(oDictionary) {
             var s = '{';
 
-            common.eachPair(oDictionary, function(key, value) { s += key + ': "' + value + '", '; });
+            piSensorNet.eachPair(oDictionary, function(key, value) { s += key + ': "' + value + '", '; });
 
             s = s.substring(0, s.length - 2) + '}';
 
@@ -34,8 +34,8 @@
 
         piSensorNet.on('onNewModule',
             function(iModuleID, sModuleAddress) {
-                console.log('onNewModule: ' + arrayToString(common.argsToArray(arguments)));
-
+                console.log('onNewModule: ' + arrayToString(piSensorNet.argsToArray(arguments)));
+                return;
                 $('ul#modulesList')
                     .append($('<li />')
                         .attr('data-moduleId', iModuleID)
@@ -44,13 +44,13 @@
 
         piSensorNet.on('onNewTemperatureSensor',
             function(iModuleID, iSensorID, sSensorddress) {
-                console.log('onNewModule: ' + arrayToString(common.argsToArray(arguments)));
+                console.log('onNewModule: ' + arrayToString(piSensorNet.argsToArray(arguments)));
             });
 
         piSensorNet.on('onNewTemperatureReading',
             function(iModuleID, iSensorID, fValue, dCreated, dReceived) {
-                console.log('onNewTemperatureReading: ' + arrayToString(common.argsToArray(arguments)));
-
+                console.log('onNewTemperatureReading: ' + arrayToString(piSensorNet.argsToArray(arguments)));
+                return;
                 var $ul = $('ul#temperatureReadingsList');
                 var $li = $ul.find('li[data-sensorId="' + iSensorID + '"]');
                 if (!$li.length) {
@@ -63,13 +63,13 @@
 
         piSensorNet.on('onChangedTemperatureSensorPeriod',
             function(iModuleID, tPeriod) {
-                console.log('onChangedTemperatureSensorPeriod: ' + arrayToString(common.argsToArray(arguments)));
+                console.log('onChangedTemperatureSensorPeriod: ' + arrayToString(piSensorNet.argsToArray(arguments)));
             });
 
         piSensorNet.on('onNewOneWireDevices',
             function(iModuleID, oDevices) {
                 console.log('onNewOneWireDevices: ' + iModuleID + ', ' + dictionaryToString(oDevices));
-
+                return;
                 var $ul = $('ul#temperatureSensorList');
                 var $li = $ul.find('li[data-moduleId="' + iModuleID + '"]');
                 if (!$li.length) {
@@ -83,7 +83,7 @@
                     $li.append($nestedUl);
                 }
 
-                common.eachPair(oDevices,
+                piSensorNet.eachPair(oDevices,
                     function(deviceId, deviceAddress) {
                         $nestedUl.append($('<li />').attr('data-sensorId', deviceId).text(deviceAddress));
                     });
@@ -91,73 +91,72 @@
 
         piSensorNet.on('onNewVoltageReading',
             function(iModuleID, fValue, dCreated, dReceived) {
-                console.log('onNewVoltageReading: ' + arrayToString(common.argsToArray(arguments)));
-            });
+                console.log('onNewVoltageReading: ' + arrayToString(piSensorNet.argsToArray(arguments)));
+            });*@
 
+        //var listModules = function(oModules) {
+        //    var $ul = $('ul#modulesList');
 
-        var listModules = function(oModules) {
-            var $ul = $('ul#modulesList');
+        //    $ul.empty();
 
-            $ul.empty();
+        //    piSensorNet.eachPair(oModules,
+        //        function(iModuleID, oModule) {
+        //            $ul.append($('<li />').attr('data-moduleId', iModuleID).text(oModule.Address));
+        //        });
+        //}
 
-            common.eachPair(oModules,
-                function(iModuleID, oModule) {
-                    $ul.append($('<li />').attr('data-moduleId', iModuleID).text(oModule.Address));
-                });
-        }
+        //var listTemperatureSensors = function(oSensors) {
+        //    var $ul = $('ul#temperatureSensorList');
 
-        var listTemperatureSensors = function(oSensors) {
-            var $ul = $('ul#temperatureSensorList');
+        //    $ul.empty();
 
-            $ul.empty();
+        //    piSensorNet.eachPair(oSensors,
+        //        function(iModuleID, oModuleSensors) {
+        //            var $li = $ul.find('li[data-moduleId="' + iModuleID + '"]');
+        //            if (!$li.length) {
+        //                $li = $('<li />').attr('data-moduleId', iModuleID).text(iModuleID);
+        //                $ul.append($li);
+        //            }
 
-            common.eachPair(oSensors,
-                function(iModuleID, oModuleSensors) {
-                    var $li = $ul.find('li[data-moduleId="' + iModuleID + '"]');
-                    if (!$li.length) {
-                        $li = $('<li />').attr('data-moduleId', iModuleID).text(iModuleID);
-                        $ul.append($li);
-                    }
+        //            var $nestedUl = $li.find("ul");
+        //            if (!$nestedUl.length) {
+        //                $nestedUl = $('<ul />').attr('data-moduleId', iModuleID);
+        //                $li.append($nestedUl);
+        //            }
 
-                    var $nestedUl = $li.find("ul");
-                    if (!$nestedUl.length) {
-                        $nestedUl = $('<ul />').attr('data-moduleId', iModuleID);
-                        $li.append($nestedUl);
-                    }
+        //            piSensorNet.eachPair(oModuleSensors,
+        //                function(iSensor, oSensor) {
+        //                    var $input = $('<input />')
+        //                        .attr('type', 'text')
+        //                        .css({
+        //                            'text-align': 'right',
+        //                            'width': '100px',
+        //                            'margin-left': '20px',
+        //                            'margin-right': '20px'
+        //                        })
+        //                        .val(oSensor.Period);
 
-                    common.eachPair(oModuleSensors,
-                        function(iSensor, oSensor) {
-                            var $input = $('<input />')
-                                .attr('type', 'text')
-                                .css({
-                                    'text-align': 'right',
-                                    'width': '100px',
-                                    'margin-left': '20px',
-                                    'margin-right': '20px'
-                                })
-                                .val(oSensor.Period);
+        //                    var $button = $('<button />')
+        //                        .text("Set period");
 
-                            var $button = $('<button />')
-                                .text("Set period");
+        //                    $nestedUl.append($('<li />')
+        //                        .attr('data-sensorId', iSensor)
+        //                        .text(oSensor.Address)
+        //                        .append($input)
+        //                        .append($button));
+        //                });
+        //        });
+        //}
 
-                            $nestedUl.append($('<li />')
-                                .attr('data-sensorId', iSensor)
-                                .text(oSensor.Address)
-                                .append($input)
-                                .append($button));
-                        });
-                });
-        }
-
-        piSensorNet.onConnected(function() {
-            //piSensorNet.call('listModules', null, listModules);
-            piSensorNet.call('listTemperatureSensors', null, listTemperatureSensors);
-        });
+        //piSensorNet.onConnected(function() {
+        //    //piSensorNet.call('listModules', null, listModules);
+        //    piSensorNet.call('listTemperatureSensors', null, listTemperatureSensors);
+        //});
         // ReSharper enable UnusedParameter
     </script>
 }
 
-<div class="row">
+@*<div class="row">
     <h3>Modules:</h3>
 
     <ul id="modulesList"></ul>
@@ -180,4 +179,4 @@
     <ul id="temperatureReadingsList"></ul>
 
     <button id="btnReadTemperature" onclick="piSensorNet.handle(this, 'readTemperature', [null])" data-require="hubConnection">Read temperature</button>
-</div>
+</div>*@

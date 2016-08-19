@@ -1,16 +1,23 @@
 //#define CATCH_VALIDATION_ERRORS
 
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Data.Entity.Core;
 using System.Data.Entity.Core.Metadata.Edm;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
+using JetBrains.Annotations;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.System;
 using piSensorNet.DataModel.Entities.Base;
+using piSensorNet.DataModel.Extensions;
 
 [assembly: InternalsVisibleTo("piSensorNet.Tests")]
 
@@ -19,6 +26,8 @@ namespace piSensorNet.DataModel.Context
     [DbConfigurationType(typeof(PiSensorNetDbConfiguration))]
     public partial class PiSensorNetDbContext : DbContext
     {
+        protected const string UpdatePattern = "UPDATE `{0}` SET {1} WHERE {2}; ";
+
         //private static readonly IReadOnlyDictionary<Type, Func<IQueryable, Tuple<string, ObjectParameterCollection>>> QueryExtractors;
 
         static PiSensorNetDbContext()
@@ -80,7 +89,7 @@ namespace piSensorNet.DataModel.Context
             }
         }
 
-        private PiSensorNetDbContext(string nameOrConnectionString, IDatabaseInitializer<PiSensorNetDbContext> initializer)
+        private PiSensorNetDbContext([NotNull] string nameOrConnectionString, [CanBeNull] IDatabaseInitializer<PiSensorNetDbContext> initializer)
             : base(nameOrConnectionString)
         {
             if (initializer != null)
@@ -100,12 +109,13 @@ namespace piSensorNet.DataModel.Context
             Configuration.ValidateOnSaveEnabled = false;
         }
 
-        public PiSensorNetDbContext(string nameOrConnectionString)
+        public PiSensorNetDbContext([NotNull] string nameOrConnectionString)
             : this(nameOrConnectionString, null) {}
 
-        public static PiSensorNetDbContext Connect(string nameOrConnectionString) => new PiSensorNetDbContext(nameOrConnectionString, null);
+        [NotNull]
+        public static PiSensorNetDbContext Connect([NotNull] string nameOrConnectionString) => new PiSensorNetDbContext(nameOrConnectionString, null);
 
-        public static void Initialize(string nameOrConnectionString, bool recreateDatabase = false)
+        public static void Initialize([NotNull] string nameOrConnectionString, bool recreateDatabase = false)
         {
             using (var context = new PiSensorNetDbContext(nameOrConnectionString, recreateDatabase ? RecreateInitializer : null))
             {
@@ -114,6 +124,7 @@ namespace piSensorNet.DataModel.Context
             }
         }
 
+        [NotNull]
         public PiSensorNetDbContext WithChangeTracking()
         {
             ChangeTracking = true;
@@ -121,6 +132,7 @@ namespace piSensorNet.DataModel.Context
             return this;
         }
 
+        [NotNull]
         public PiSensorNetDbContext WithLazyLoading()
         {
             Configuration.LazyLoadingEnabled = true;
@@ -128,10 +140,12 @@ namespace piSensorNet.DataModel.Context
             return this;
         }
 
+        [NotNull]
         public string GetTableName<TEntity>()
             where TEntity : EntityBase => GetTableName(Reflector.Instance<TEntity>.Type);
 
-        public string GetTableName(Type entityType)
+        [NotNull]
+        public string GetTableName([NotNull] Type entityType)
         {
             return TableNamesCache.GetOrAdd(entityType, type =>
             {
@@ -146,7 +160,23 @@ namespace piSensorNet.DataModel.Context
             });
         }
 
-        public void EnqueueRaw(string sql) => _rawQueries.Add(sql);
+        [NotNull]
+        public string EnqueueUpdate<TEntity>([InstantHandle] [NotNull] Expression<Func<TEntity, bool>> values, [InstantHandle] [NotNull] Expression<Func<TEntity, bool>> predicate)
+            where TEntity : EntityBase
+        {
+            var tableName = GetTableName<TEntity>();
+
+            var valuesProperties = ExpressionExtensions.ExtractPropertiesFromEqualityComparisons(values.Body);
+            var columns = valuesProperties.Select(i => $"`{i.Key.Name}` = {SqlExtensions.Formatters[i.Key.PropertyType](i.Value)}").Join(", ");
+
+            var where = ExtractPredicate(predicate.Body, new StringBuilder());
+
+            var update = UpdatePattern.AsFormatFor(tableName, columns, where);
+
+            return update;
+        }
+
+        public void EnqueueRaw([NotNull] string sql) => _rawQueries.Add(sql);
 
         public void ExecuteRaw()
         {
@@ -212,6 +242,160 @@ namespace piSensorNet.DataModel.Context
 
             return result;
 
+        }
+        
+        private static StringBuilder ExtractPredicate(Expression e, StringBuilder builder)
+        {
+            var binary = e as BinaryExpression;
+            if (binary == null)
+            {
+                var methodCall = e as MethodCallExpression;
+                if (methodCall == null)
+                    return builder;
+
+                if (methodCall.Method.Name != "Contains")
+                    throw new NotSupportedException($"Method '{methodCall.Method.Name}' is not supported;");
+
+                if (methodCall.Arguments.Count != 2 || methodCall.Arguments[1].Type != Reflector.Instance<int>.Type)
+                    throw new NotSupportedException($"Arguments [{methodCall.Arguments.Select(i => $"{i.Type}").Join(", ")}] are not supported.");
+
+                var propertyArgument = (MemberExpression)methodCall.Arguments[1];
+                var formatter = SqlExtensions.Formatters[propertyArgument.Member.GetMemberType()];
+                var valuesSelector = Expression.Lambda<Func<IEnumerable>>(methodCall.Arguments[0]).Compile();
+                var values = valuesSelector().Cast<object>().Select(formatter).Join(", ");
+
+                builder.Append($"`{propertyArgument.Member.Name}` IN ({values})");
+
+                return builder;
+            }
+
+            var property = binary.Left as MemberExpression;
+            if (property == null)
+            {
+                var unary = binary.Left as UnaryExpression;
+                if (unary != null && unary.NodeType == ExpressionType.Convert)
+                    property = unary.Operand as MemberExpression;
+            }
+
+            if (property != null)
+            {
+                var value = binary.Right;
+
+                var unary = value as UnaryExpression;
+                if (unary != null && unary.NodeType == ExpressionType.Convert)
+                    value = unary.Operand;
+
+                var propertyName = property.Member.Name;
+                var nestedProperty = property.Expression as MemberExpression;
+                if (nestedProperty != null)
+                    throw new NotSupportedException($"Nested '{Reflector.Instance<MemberExpression>.Name}' in '{e}' not supported.");
+
+                string op;
+                switch (e.NodeType)
+                {
+                    case ExpressionType.Equal:
+                        op = "=";
+                        break;
+
+                    case ExpressionType.NotEqual:
+                        op = "!=";
+                        break;
+
+                    case ExpressionType.GreaterThan:
+                        op = ">";
+                        break;
+
+                    case ExpressionType.GreaterThanOrEqual:
+                        op = ">=";
+                        break;
+
+                    case ExpressionType.LessThan:
+                        op = "<";
+                        break;
+
+                    case ExpressionType.LessThanOrEqual:
+                        op = "<=";
+                        break;
+
+                    default:
+                        throw new NotSupportedException($"Operand '{e.NodeType}' is not supported yet.");
+                }
+
+                var constantValue = value as ConstantExpression;
+                if (constantValue != null)
+                {
+                    builder.Append($"`{propertyName}` {op} {SqlExtensions.Formatters[constantValue.Type](constantValue.Value)}");
+                    return builder;
+                }
+
+                var member = value as MemberExpression;
+                if (member != null)
+                {
+                    var valueGetter = Expression.Lambda<Func<object>>(Expression.Convert(member, typeof(object))).Compile();
+
+                    builder.Append($"`{propertyName}` {op} {SqlExtensions.Formatters[member.Member.GetMemberType()](valueGetter())}");
+                    // ReSharper disable once RedundantJumpStatement
+                    return builder;
+                }
+            }
+            else if (e.NodeType == ExpressionType.AndAlso || e.NodeType == ExpressionType.OrElse)
+            {
+                builder.Append("(");
+
+                ExtractPredicate(binary.Left, builder);
+
+                builder.Append(e.NodeType == ExpressionType.AndAlso ? " AND " : " OR ");
+
+                // ReSharper disable once TailRecursiveCall
+                ExtractPredicate(binary.Right, builder);
+
+                builder.Append(")");
+            }
+
+            return builder;
+        }
+
+        public static void CheckCompatibility(string nameOrConnectionString)
+        {
+            using (var context = new PiSensorNetDbContext(nameOrConnectionString, null))
+            {
+                var tables = Reflector.Instance<PiSensorNetDbContext>.Type
+                                      .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                      .Where(i => i.PropertyType.IsGenericType
+                                                  && i.PropertyType.GetGenericTypeDefinition() == typeof(DbSet<>))
+                                      .ToList();
+
+                var exceptions = new List<string>(tables.Count);
+                var firstOrDefault = typeof(Queryable).GetMethods(BindingFlags.Public | BindingFlags.Static)
+                                                      .Where(i => i.Name.Equals("FirstOrDefault", StringComparison.InvariantCulture)
+                                                                  && i.GetParameters().Length == 1)
+                                                      .Single();
+
+                foreach (var table in tables)
+                {
+                    var entityType = table.PropertyType.GetGenericArguments()[0];
+                    var value = table.GetValue(context);
+
+                    try
+                    {
+                        firstOrDefault.MakeGenericMethod(entityType).Invoke(null, new[] {value});
+                    }
+                    catch (TargetInvocationException e)
+                    {
+                        if (e.InnerException is EntityCommandExecutionException)
+                            exceptions.Add(table.Name + ": " + ((EntityCommandExecutionException)e.InnerException).InnerException.Message);
+                        else
+                            exceptions.Add(table.Name + ": " + e.InnerException.Message);
+                    }
+                    catch (Exception e)
+                    {
+                        exceptions.Add(table.Name + ": " + e.Message);
+                    }
+                }
+
+                if (exceptions.Count > 0)
+                    throw new NotSupportedException($"Errors found:{Environment.NewLine}\t- {exceptions.Join(Environment.NewLine + "\t- ")}");
+            }
         }
     }
 }

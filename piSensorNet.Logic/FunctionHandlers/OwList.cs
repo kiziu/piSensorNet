@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using piSensorNet.Common;
-using piSensorNet.DataModel.Context;
+using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.DataModel.Enums;
 using piSensorNet.Logic.FunctionHandlers.Base;
 
 namespace piSensorNet.Logic.FunctionHandlers
@@ -17,13 +16,14 @@ namespace piSensorNet.Logic.FunctionHandlers
     internal sealed class OwList : TemperatureSensorsFinderBase<string>
     {
         public override FunctionTypeEnum FunctionType => FunctionTypeEnum.OwList;
+        public override TriggerSourceTypeEnum? TriggerSourceType => null;
 
         protected override IReadOnlyCollection<string> GetItems(IModuleConfiguration moduleConfiguration, Packet packet)
             => FunctionHandlerHelper.SplitSingle(packet.Text, moduleConfiguration.FunctionResultDelimiter);
 
         protected override Func<string, string> GetAddress => item => item;
 
-        protected override void OnHandled(PiSensorNetDbContext context, Module module, Queue<Action<IMainHubEngine>> hubMessageQueue, IReadOnlyCollection<TemperatureSensor> newSensors)
+        protected override void OnHandled(FunctionHandlerContext context, Module module, Queue<Action<IMainHubEngine>> hubMessageQueue, IReadOnlyCollection<TemperatureSensor> newSensors)
         {
             var dictionary = newSensors.ToDictionary(i => i.ID, i => i.Address);
 

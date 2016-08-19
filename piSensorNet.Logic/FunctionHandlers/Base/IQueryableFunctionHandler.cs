@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using piSensorNet.Common;
-using piSensorNet.DataModel.Context;
+using JetBrains.Annotations;
+using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities;
 
 namespace piSensorNet.Logic.FunctionHandlers.Base
 {
     public interface IQueryableFunctionHandler : IFunctionHandler
     {
-        void Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet originalPacket, string response, Queue<Action<IMainHubEngine>> hubMessageQueue);
+        PacketStateEnum Handle([NotNull] FunctionHandlerContext context, [NotNull] Packet originalPacket, [NotNull] string response, [NotNull] Queue<Action<IMainHubEngine>> hubMessageQueue);
     }
 }

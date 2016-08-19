@@ -1,8 +1,8 @@
 using System;
 using System.Data.Entity;
 using System.Linq;
+using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.DataModel.Enums;
 
 namespace piSensorNet.DataModel.Context
 {

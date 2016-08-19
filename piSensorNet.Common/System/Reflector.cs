@@ -86,6 +86,10 @@ namespace piSensorNet.Common.System
             [NotNull]
             public static string Name { get; } = Type.GetProperName();
 
+            // ReSharper disable once StaticMemberInGenericType
+            [NotNull]
+            public static string EnumName { get; } = Type.Name.RemoveEnd(Instance<Enum>.Name);
+
             [NotNull]
             public static PropertyInfo Property<TReturn>([NotNull] Expression<Func<T, TReturn>> e)
             {

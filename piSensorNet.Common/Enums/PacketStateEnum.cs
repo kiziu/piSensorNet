@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace piSensorNet.DataModel.Enums
+namespace piSensorNet.Common.Enums
 {
     public enum PacketStateEnum
     {
@@ -11,5 +11,6 @@ namespace piSensorNet.DataModel.Enums
         Unhandled = 4,
         Redundant = 5,
         Skipped = 6,
+        Failed = 7,
     }
 }

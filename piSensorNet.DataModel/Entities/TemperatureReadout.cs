@@ -7,9 +7,9 @@ using piSensorNet.DataModel.Entities.Base;
 
 namespace piSensorNet.DataModel.Entities
 {
-    public class TemperatureReading : EntityBase
+    public class TemperatureReadout : EntityBase
     {
-        internal static void OnModelCreating(EntityTypeConfiguration<TemperatureReading> entityTypeConfiguration)
+        internal static void OnModelCreating(EntityTypeConfiguration<TemperatureReadout> entityTypeConfiguration)
         {
             entityTypeConfiguration.Property(i => i.Value).HasPrecision(5, 2);
 
@@ -18,16 +18,16 @@ namespace piSensorNet.DataModel.Entities
                                    .HasForeignKey(i => i.TemperatureSensorID);
         }
 
-        protected TemperatureReading() {}
+        protected TemperatureReadout() {}
 
-        public TemperatureReading(int temperatureSensorID, decimal value, DateTime received)
+        public TemperatureReadout(int temperatureSensorID, decimal value, DateTime received)
         {
             TemperatureSensorID = temperatureSensorID;
             Value = value;
             Received = received;
         }
 
-        public TemperatureReading(TemperatureSensor temperatureSensor, decimal value, DateTime received)
+        public TemperatureReadout(TemperatureSensor temperatureSensor, decimal value, DateTime received)
         {
             Value = value;
             Received = received;

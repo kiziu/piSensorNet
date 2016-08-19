@@ -47,7 +47,7 @@ namespace piSensorNet.DataModel.Entities
 
         public int Total { get; set; }
 
-        [Column(TypeName = "char")]
+        [Column(TypeName = "varchar")]
         [MaxLength(32)]
         public string Message { get; set; }
 

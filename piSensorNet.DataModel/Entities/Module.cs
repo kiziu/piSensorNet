@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
+using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities.Base;
-using piSensorNet.DataModel.Enums;
 
 namespace piSensorNet.DataModel.Entities
 {
@@ -45,7 +45,7 @@ namespace piSensorNet.DataModel.Entities
         [MaxLength(50)]
         public string FriendlyName { get; set; } = null;
 
-        [Column(TypeName = "text")]
+        [Column(TypeName = "varchar")]
         [MaxLength(500)]
         public string Description { get; set; } = null;
 
@@ -65,7 +65,7 @@ namespace piSensorNet.DataModel.Entities
 
         public virtual ICollection<TemperatureSensor> TemperatureSensors { get; protected internal set; } = new List<TemperatureSensor>();
 
-        public virtual ICollection<VoltageReading> VoltageReadings { get; protected internal set; } = new List<VoltageReading>();
+        public virtual ICollection<VoltageReadout> VoltageReadings { get; protected internal set; } = new List<VoltageReadout>();
 
         public virtual ICollection<ModuleFunction> ModuleFunctions { get; protected internal set; } = new List<ModuleFunction>();
     }

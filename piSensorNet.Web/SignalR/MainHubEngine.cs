@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
-using piSensorNet.DataModel.Enums;
 using piSensorNet.Logic;
 
 namespace piSensorNet.Web.SignalR
@@ -19,13 +19,13 @@ namespace piSensorNet.Web.SignalR
             SendError(clientID, message);
         }
 
-        public void NewModuleFunctions(int moduleID, IReadOnlyCollection<FunctionTypeEnum> functions)
+        public void NewModuleFunctions(int moduleID, IReadOnlyCollection<KeyValuePair<FunctionTypeEnum, string>> functions)
         {
             Console.WriteLine($"{Now}: {nameof(NewModuleFunctions)}({moduleID}, [{functions.Select(i => i.ToString()).Join(", ")}]");
             if (!IsEngine())
                 return;
 
-            NonEngine.onNewModuleFunctions(moduleID, functions);
+            NonEngine.OnNewModuleFunctions(moduleID, functions);
         }
 
         public void NewModule(int moduleID, string moduleAddress)
@@ -34,7 +34,7 @@ namespace piSensorNet.Web.SignalR
             if (!IsEngine())
                 return;
 
-            NonEngine.onNewModule(moduleID, moduleAddress);
+            NonEngine.OnNewModule(moduleID, moduleAddress);
         }
 
         public void NewTemperatureReading(int moduleID, int sensorID, decimal value, DateTime created, DateTime received)
@@ -43,7 +43,7 @@ namespace piSensorNet.Web.SignalR
             if (!IsEngine())
                 return;
 
-            NonEngine.onNewTemperatureReading(moduleID, sensorID, value, created, received);
+            NonEngine.OnNewTemperatureReading(moduleID, sensorID, value, created, received);
         }
 
         public void NewTemperatureSensor(int moduleID, int sensorID, string sensorAddress)
@@ -52,7 +52,7 @@ namespace piSensorNet.Web.SignalR
             if (!IsEngine())
                 return;
 
-            NonEngine.onNewTemperatureSensor(moduleID, sensorID, sensorAddress);
+            NonEngine.OnNewTemperatureSensor(moduleID, sensorID, sensorAddress);
         }
 
         public void ChangedTemperatureSensorPeriod(int moduleID, TimeSpan period)
@@ -61,7 +61,7 @@ namespace piSensorNet.Web.SignalR
             if (!IsEngine())
                 return;
 
-            NonEngine.onChangedTemperatureSensorPeriod(moduleID, period);
+            NonEngine.OnChangedTemperatureSensorPeriod(moduleID, period);
         }
 
         public void NewOneWireDevices(int moduleID, IReadOnlyDictionary<int, string> devices)
@@ -70,7 +70,7 @@ namespace piSensorNet.Web.SignalR
             if (!IsEngine())
                 return;
 
-            NonEngine.onNewOneWireDevices(moduleID, devices);
+            NonEngine.OnNewOneWireDevices(moduleID, devices);
         }
 
         public void NewVoltageReading(int moduleID, decimal value, DateTime created, DateTime received)
@@ -79,7 +79,7 @@ namespace piSensorNet.Web.SignalR
             if (!IsEngine())
                 return;
 
-            NonEngine.onNewVoltageReading(moduleID, value, created, received);
+            NonEngine.OnNewVoltageReading(moduleID, value, created, received);
         }
     }
 }

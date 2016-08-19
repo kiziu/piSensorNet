@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using piSensorNet.Common.System;
 
 namespace piSensorNet.Common.Extensions
 {
@@ -41,7 +42,26 @@ namespace piSensorNet.Common.Extensions
             return null;
         }
 
-        public static IReadOnlyDictionary<PropertyInfo, object> InternalExtractPropertiesFromEqualityComparisons(Expression e)
+        public static Expression<Func<TClass, TProperty>> Create<TClass, TProperty>(string memberName)
+        {
+            var parameter = Expression.Parameter(Reflector.Instance<TClass>.Type, "e");
+            var member = Expression.PropertyOrField(parameter, memberName);
+            var body = (Expression)member;
+
+            if (Reflector.Instance<TProperty>.Type == Reflector.Instance<object>.Type
+                && member.Member.GetMemberType() != Reflector.Instance<object>.Type)
+                body = Expression.Convert(body, Reflector.Instance<object>.Type);
+
+            var expression = Expression.Lambda<Func<TClass, TProperty>>(body, parameter);
+
+            return expression;
+        }
+
+
+        public static Expression<Func<TClass, object>> Create<TClass>(string memberName) 
+            => Create<TClass, object>(memberName);
+
+        public static IReadOnlyDictionary<PropertyInfo, object> ExtractPropertiesFromEqualityComparisons(Expression e)
         {
             var properties = new Dictionary<PropertyInfo, object>();
 

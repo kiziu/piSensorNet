@@ -1,58 +1,64 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using piSensorNet.Common;
+using System.Reflection;
+using piSensorNet.Common.Custom;
+using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
-using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.DataModel.Enums;
 using piSensorNet.Logic.Custom;
 using piSensorNet.Logic.FunctionHandlers.Base;
 
 namespace piSensorNet.Logic.FunctionHandlers
 {
-    internal sealed class FunctionList : IFunctionHandler
+    internal sealed class FunctionList : FunctionHandlerBase
     {
-        public FunctionTypeEnum FunctionType => FunctionTypeEnum.FunctionList;
+        public override FunctionTypeEnum FunctionType => FunctionTypeEnum.FunctionList;
 
-        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
         {
-            if (packet.Module.State != ModuleStateEnum.Identified)
-                return PacketStateEnum.Skipped;
+            var module = packet.Module;
 
-            var currentFunctions = context.Functions
+            var currentFunctions = context.DatabaseContext
+                                          .Functions
                                           .ToDictionary(i => i.Name, i => i)
                                           .ReadOnly();
 
-            var module = packet.Module;
-            var moduleFunctions = context.ModuleFunctions
+            var currentModuleFunctions = context.DatabaseContext
+                                         .ModuleFunctions
                                          .AsNoTracking()
                                          .Where(i => i.ModuleID == module.ID)
-                                         .Select(i => i.Function.Name)
+                                         .Select(i => i.FunctionID)
                                          .ToHashSet();
 
             var functionNames = packet.Text
                                       .ToLowerInvariant()
-                                      .Split(moduleConfiguration.FunctionResultDelimiter)
-                                      .Where(i => !string.IsNullOrEmpty(i));
+                                      .Split(context.ModuleConfiguration.FunctionResultDelimiter)
+                                      .Where(i => !string.IsNullOrEmpty(i))
+                                      .ToList();
 
-            var newModuleFunctions = new List<FunctionTypeEnum>();
+            var newModuleFunctions = new List<KeyValuePair<FunctionTypeEnum, string>>(functionNames.Count);
             foreach (var functionName in functionNames)
             {
-                if (moduleFunctions.Contains(functionName))
+                var function = currentFunctions.GetValueOrDefault(functionName);
+                if (function != null && currentModuleFunctions.Contains(function.ID))
                     continue;
 
-                var function = currentFunctions.GetValueOrDefault(functionName)
-                               ?? new Function(functionName, FunctionTypeEnum.Unknown, false);
+                if (function == null)
+                    Log(context, packet,
+                        MethodBase.GetCurrentMethod().GetFullName(),
+                        $"Unknown function '{functionName}' received in th list.");
 
-                context.ModuleFunctions.Add(new ModuleFunction(module, function));
+                function = function ?? new Function(functionName, FunctionTypeEnum.Unknown, false);
 
-                newModuleFunctions.Add(function.FunctionType);
+                context.DatabaseContext.ModuleFunctions.Add(new ModuleFunction(module, function));
+
+                newModuleFunctions.Add(KeyValuePair.Create(function.FunctionType, function.Name));
             }
 
             if (newModuleFunctions.Count > 0)
             {
-                context.SaveChanges();
+                context.DatabaseContext.SaveChanges();
 
                 hubMessageQueue.Enqueue(proxy => proxy.NewModuleFunctions(module.ID, newModuleFunctions));
             }

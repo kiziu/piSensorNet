@@ -7,9 +7,9 @@ using piSensorNet.DataModel.Entities.Base;
 
 namespace piSensorNet.DataModel.Entities
 {
-    public class VoltageReading : EntityBase
+    public class VoltageReadout : EntityBase
     {
-        internal static void OnModelCreating(EntityTypeConfiguration<VoltageReading> entityTypeConfiguration)
+        internal static void OnModelCreating(EntityTypeConfiguration<VoltageReadout> entityTypeConfiguration)
         {
             entityTypeConfiguration.Property(i => i.Value).HasPrecision(5, 3);
 
@@ -18,16 +18,16 @@ namespace piSensorNet.DataModel.Entities
                                    .HasForeignKey(i => i.ModuleID);
         }
 
-        protected VoltageReading() {}
+        protected VoltageReadout() {}
 
-        public VoltageReading(int moduleID, decimal value, DateTime received)
+        public VoltageReadout(int moduleID, decimal value, DateTime received)
         {
             ModuleID = moduleID;
             Value = value;
             Received = received;
         }
 
-        public VoltageReading(Module module, decimal value, DateTime received)
+        public VoltageReadout(Module module, decimal value, DateTime received)
         {
             Value = value;
             Received = received;

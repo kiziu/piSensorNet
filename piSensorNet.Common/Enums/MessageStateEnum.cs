@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace piSensorNet.DataModel.Enums
+namespace piSensorNet.Common.Enums
 {
     public enum MessageStateEnum
     {

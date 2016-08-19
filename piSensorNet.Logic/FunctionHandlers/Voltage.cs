@@ -1,33 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using piSensorNet.Common;
-using piSensorNet.DataModel.Context;
+using System.Reflection;
+using piSensorNet.Common.Enums;
+using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.DataModel.Enums;
 using piSensorNet.Logic.Custom;
 using piSensorNet.Logic.FunctionHandlers.Base;
 
 namespace piSensorNet.Logic.FunctionHandlers
 {
-    internal sealed class Voltage : IFunctionHandler
+    internal sealed class Voltage : FunctionHandlerBase
     {
-        public FunctionTypeEnum FunctionType => FunctionTypeEnum.Voltage;
+        public override FunctionTypeEnum FunctionType => FunctionTypeEnum.Voltage;
+        public override TriggerSourceTypeEnum? TriggerSourceType =>  TriggerSourceTypeEnum.VoltageReadout;
 
-        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
         {
-            if (packet.Module.State != ModuleStateEnum.Identified)
-                return PacketStateEnum.Skipped;
-
-            var reading = decimal.Parse(packet.Text);
             var module = packet.Module;
 
-            var voltageReading = new VoltageReading(module.ID, reading, packet.Received);
+            decimal reading;
+            if (!decimal.TryParse(packet.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out reading))
+                return LogAndReturn(context, packet,
+                    MethodBase.GetCurrentMethod().GetFullName(),
+                    $"Could not parse text '{packet.Text}' to decimal voltage.");
 
-            context.VoltageReadings.Add(voltageReading);
-            context.SaveChanges();
+            var voltageReading = new VoltageReadout(module.ID, reading, packet.Received);
 
-            hubMessageQueue.Enqueue(proxy => proxy.NewVoltageReading(module.ID, voltageReading.Value, voltageReading.Created, voltageReading.Received));
+            context.DatabaseContext.VoltageReadouts.Add(voltageReading);
+            context.DatabaseContext.SaveChanges();
+
+            hubMessageQueue.Enqueue(proxy => proxy.NewVoltageReading(voltageReading.ModuleID, voltageReading.Value, voltageReading.Created, voltageReading.Received));
 
             return PacketStateEnum.Handled;
         }

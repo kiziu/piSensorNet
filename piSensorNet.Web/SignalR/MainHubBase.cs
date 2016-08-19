@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Microsoft.AspNet.SignalR;
 using Microsoft.AspNet.SignalR.Hubs;
-using piSensorNet.DataModel.Context;
+using piSensorNet.Web.SignalR.Interfaces;
 
 namespace piSensorNet.Web.SignalR
 {
-    public partial class MainHub : Hub
+    public partial class MainHub : Hub<IUser>
     {
         private static readonly string EngineQueryStringKey = Startup.Configuration["Settings:SignalREngineFlagName"];
         private static readonly string EngineQueryStringValue = true.ToString().ToLowerInvariant();
@@ -17,20 +16,12 @@ namespace piSensorNet.Web.SignalR
 
         public static string EngineClientConnectionID { get; private set; }
 
-        public dynamic NonEngine => Clients.AllExcept(EngineClientConnectionID);
-        public EngineProxy Engine => new EngineProxy(Clients.Client(EngineClientConnectionID), Context);
-
-        private readonly Func<PiSensorNetDbContext> _contextFactory;
-        public MainHub([NotNull] Func<PiSensorNetDbContext> contextFactory)
-        {
-            if (contextFactory == null) throw new ArgumentNullException(nameof(contextFactory));
-
-            _contextFactory = contextFactory;
-        }
-
+        public IClient NonEngine => Clients.AllExcept(EngineClientConnectionID);
+        public IEngine Engine => Clients.Client(EngineClientConnectionID);
+        
         public override Task OnDisconnected(bool stopCalled)
         {
-            Console.WriteLine($"{Now}: Disconnected, ID {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}.");
+            Console.WriteLine($"{Now}: Disconnected, ID {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}");
 
             return base.OnDisconnected(stopCalled);
         }
@@ -39,7 +30,7 @@ namespace piSensorNet.Web.SignalR
         {
             TryIdentifyEngine(Context);
 
-            Console.WriteLine($"{Now}: Connected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine": "")}, transport: {Context.QueryString["transport"]}.");
+            Console.WriteLine($"{Now}: Connected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine": "")}, transport: {Context.QueryString["transport"]}");
 
             return base.OnConnected();
         }
@@ -48,7 +39,7 @@ namespace piSensorNet.Web.SignalR
         {
             TryIdentifyEngine(Context);
 
-            Console.WriteLine($"{Now}: Reconnected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}, transport: {Context.QueryString["transport"]}.");
+            Console.WriteLine($"{Now}: Reconnected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}, transport: {Context.QueryString["transport"]}");
 
             return base.OnReconnected();
         }
@@ -81,7 +72,7 @@ namespace piSensorNet.Web.SignalR
 
         private void SendError(string clientID, string message)
         {
-            Clients.Client(clientID).error(message);
+            Clients.Client(clientID).OnError(message);
         }
     }
 }

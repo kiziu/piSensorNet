@@ -12,5 +12,15 @@ namespace piSensorNet.Common.Extensions
 
             return o;
         }
+
+
+        [NotNull]
+        public static Type GetRealType([NotNull] this object obj)
+        {
+            var objType = obj.GetType();
+            var underlyingType = objType.GetNullable();
+
+            return underlyingType ?? objType;
+        }
     }
 }

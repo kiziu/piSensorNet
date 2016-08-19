@@ -1,15 +1,12 @@
 {
     "version": "1.0.0",
-	
     "sdk": {
         "version": "1.0.0-rc1-update2"
     },
-	
     "compilationOptions": {
         "emitEntryPoint": true,
         "nowarn": [ "NU1006" ]
     },
-	
     "frameworks": {
         "dnx451": {
             "frameworkAssemblies": {
@@ -23,5 +20,8 @@
                 "MySql.Data.Entity": "6.9.8"
             }
         }
+    },
+    "dependencies": {
+        "Microsoft.AspNet.SignalR.Client": "2.1.2"
     }
 }

@@ -7,10 +7,6 @@
         "emitEntryPoint": true,
         "nowarn": [ "NU1006" ]
     },
-    "content": [
-        "../globalConfig.json",
-        "config.json"
-    ],
     "frameworks": {
         "dnx451": {
             "frameworkAssemblies": {

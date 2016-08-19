@@ -10,11 +10,9 @@ namespace piSensorNet.DataModel.Entities
 {
     public class Trigger : EntityBase
     {
-        internal static void OnModelCreating(EntityTypeConfiguration<Trigger> entityTypeConfiguration)
-        {
-        }
+        internal static void OnModelCreating(EntityTypeConfiguration<Trigger> entityTypeConfiguration) {}
 
-        protected Trigger() { }
+        protected Trigger() {}
 
         public Trigger(string friendlyName, string content, string description)
         {
@@ -32,17 +30,20 @@ namespace piSensorNet.DataModel.Entities
         [MaxLength(50)]
         public string FriendlyName { get; set; }
 
+        [Column(TypeName = "varchar")]
+        [MaxLength(500)]
+        public string Description { get; set; }
+
         [Required]
-        [Column(TypeName = "text")]
+        [Column(TypeName = "varchar")]
         [MaxLength(5000)]
         public string Content { get; set; }
 
-        [Column(TypeName = "text")]
-        [MaxLength(500)]
-        public string Description { get; set; }
-        
         public DateTime Created { get; set; } = DateTime.Now;
 
-        //public virtual ICollection<>  { get; protected internal set; } = new List<>();
+
+        public virtual ICollection<TriggerSource> TriggerSources { get; protected internal set; } = new List<TriggerSource>();
+
+        public virtual ICollection<TriggerDependency> TriggerDependencies { get; protected internal set; } = new List<TriggerDependency>();
     }
 }

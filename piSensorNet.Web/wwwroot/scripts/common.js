@@ -1,13 +1,5 @@
-﻿$.extend($.noty.defaults,
-{
-    'layout': 'topCenter',
-    'theme': 'defaultTheme'
-});
-
-// ReSharper disable once UnusedParameter
-(function (common, $) {
-
-    common.eachPair = function (oDictionary, callback) {
+﻿(function(common) {
+    common.eachPair = function(oDictionary, callback) {
         var keys = Object.keys(oDictionary);
 
         for (var i = 0, iMax = keys.length; i < iMax; ++i) {
@@ -16,7 +8,7 @@
 
             callback(key, value);
         }
-    };
+    }
 
     common.argsToArray = function(oArguments) {
         var array = [];
@@ -29,5 +21,4 @@
 
         return array;
     }
-
-}(window.common = window.common || {}, jQuery));
+}(window.common = window.common || {}));

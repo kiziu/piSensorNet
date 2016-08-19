@@ -1,0 +1,18 @@
+{
+    "version": "1.0.0-*",
+    "sdk": {
+        "version": "1.0.0-rc1-update2"
+    },
+    "compilationOptions": {
+        "emitEntryPoint": true
+    },
+    "frameworks": {
+        "dnx451": {
+            "dependencies": {
+                "piSensorNet.Web": "1.0.0",
+                "Microsoft.AspNet.Server.Kestrel": "1.0.0-rc1-final",
+                "Microsoft.Dnx.Runtime": "1.0.0-rc1-final"
+            }
+        }
+    }
+}

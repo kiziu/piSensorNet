@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using piSensorNet.Common;
-using piSensorNet.DataModel.Context;
+using JetBrains.Annotations;
+using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.DataModel.Enums;
 using piSensorNet.Logic.Custom;
 
 namespace piSensorNet.Logic.FunctionHandlers.Base
@@ -12,7 +11,11 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
     public interface IFunctionHandler
     {
         FunctionTypeEnum FunctionType { get; }
+        bool IsModuleIdentityRequired { get; }
 
-        FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Action<IMainHubEngine>> hubMessageQueue);
+        [CanBeNull]
+        TriggerSourceTypeEnum? TriggerSourceType { get; }
+
+        FunctionHandlerResult Handle([NotNull] FunctionHandlerContext context, [NotNull] Packet packet, [NotNull] ref Queue<Action<IMainHubEngine>> hubMessageQueue);
     }
 }

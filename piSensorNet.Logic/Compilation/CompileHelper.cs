@@ -3,6 +3,7 @@ using System.CodeDom.Compiler;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Microsoft.CSharp;
 using piSensorNet.Common.Extensions;
@@ -31,6 +32,7 @@ namespace {0}
         private const string MethodName = "Run";
 
         private static readonly ConcurrentDictionary<Type, string> Signatures = new ConcurrentDictionary<Type, string>();
+        private static readonly ConcurrentDictionary<Type, string> ExplosionCodes = new ConcurrentDictionary<Type, string>();
         private static readonly string IndentString = new String(' ', 12);
         private static readonly string[] LineSeparators = {"\r\n", "\n"};
 
@@ -75,27 +77,56 @@ namespace {0}
             return builder.ToString();
         }
 
-        public static CompilationResult<TDelegate> CompileTo<TDelegate>(string body)
+        public static CompilationResult<TDelegate> CompileTo<TDelegate>(string body, bool explodeParameters = false)
             where TDelegate : class
         {
             var delegateType = Reflector.Instance<TDelegate>.Type;
             if (!delegateType.IsSubclassOf(Reflector.Instance<Delegate>.Type))
                 throw new ArgumentException($"Type '{delegateType.Name}' is not a delegate type.", nameof(TDelegate));
 
-            var signature = Signatures.GetOrAdd(delegateType, i => TypeExtensions.GetSignature(i, MethodName));
+            var signature = Signatures.GetOrAdd(delegateType, i => TypeExtensions.GetDelegateSignature(i, MethodName));
+
+            if (explodeParameters)
+                body = ExplosionCodes.GetOrAdd(delegateType, GenerateExplosionCode)
+                       + Environment.NewLine + Environment.NewLine
+                       + body;
 
             var methodCode = PrepareMethodBody(body);
             var className = $"Generated_{Guid.NewGuid():N}";
+            
             var classCode = ClassPattern.AsFormatFor(Namespace, className, signature, methodCode);
             
             var result = CodeProvider.CompileAssemblyFromSource(CompilerParameters, classCode);
             if (result.Errors.HasErrors)
                 return new CompilationResult<TDelegate>(classCode, result.Errors);
-
+            
             var methodInfo = result.CompiledAssembly.GetType($"{Namespace}.{className}").GetMethod(MethodName);
+
             var function = (TDelegate)(object)Delegate.CreateDelegate(delegateType, methodInfo);
 
             return new CompilationResult<TDelegate>(classCode, function);
+        }
+
+        private static string GenerateExplosionCode(Type delegateType)
+        {
+            var method = TypeExtensions.GetDelegateMethod(delegateType);
+
+            var builder = new StringBuilder();
+
+            foreach (var parameter in method.GetParameters())
+                foreach (var parameterProperty in parameter.ParameterType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    builder.Append("var ");
+                    builder.Append(parameterProperty.Name);
+                    builder.Append(" = ");
+                    builder.Append(parameter.Name);
+                    builder.Append('.');
+                    builder.Append(parameterProperty.Name);
+                    builder.Append(';');
+                    builder.AppendLine();
+                }
+
+            return builder.ToString();
         }
     }
 }

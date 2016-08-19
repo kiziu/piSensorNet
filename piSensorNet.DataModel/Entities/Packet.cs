@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
+using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities.Base;
-using piSensorNet.DataModel.Enums;
 
 namespace piSensorNet.DataModel.Entities
 {
@@ -64,7 +64,8 @@ namespace piSensorNet.DataModel.Entities
         public PacketStateEnum State { get; set; } = PacketStateEnum.New;
 
         [Required]
-        [Column(TypeName = "text")]
+        [Column(TypeName = "varchar")]
+        [MaxLength(1000)]
         public string Text { get; set; }
 
         public DateTime Created { get; set; } = DateTime.Now;

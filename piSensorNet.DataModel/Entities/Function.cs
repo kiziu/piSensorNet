@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
+using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities.Base;
-using piSensorNet.DataModel.Enums;
 
 namespace piSensorNet.DataModel.Entities
 {
@@ -36,7 +36,7 @@ namespace piSensorNet.DataModel.Entities
         [MaxLength(50)]
         public string Name { get; set; }
 
-        [Column(TypeName = "text")]
+        [Column(TypeName = "varchar")]
         [MaxLength(500)]
         public string Description { get; set; } = null;
 

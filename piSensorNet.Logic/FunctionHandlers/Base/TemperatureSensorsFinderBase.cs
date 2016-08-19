@@ -2,31 +2,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using piSensorNet.Common;
-using piSensorNet.DataModel.Context;
+using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.DataModel.Enums;
 using piSensorNet.Logic.Custom;
 
 namespace piSensorNet.Logic.FunctionHandlers.Base
 {
-    internal abstract class TemperatureSensorsFinderBase<T> : IFunctionHandler
+    internal abstract class TemperatureSensorsFinderBase<T> : FunctionHandlerBase
     {
-        public abstract FunctionTypeEnum FunctionType { get; }
-
         protected abstract IReadOnlyCollection<T> GetItems(IModuleConfiguration moduleConfiguration, Packet packet);
         protected abstract Func<T, string> GetAddress { get; }
 
-        protected virtual void ItemCallback(PiSensorNetDbContext context, Packet packet, Queue<Action<IMainHubEngine>> hubMessageQueue, T item, TemperatureSensor sensor, bool wasSensorCreated) { }
-        protected virtual void OnHandled(PiSensorNetDbContext context, Module module, Queue<Action<IMainHubEngine>> hubMessageQueue, IReadOnlyCollection<TemperatureSensor> newSensors) { }
+        protected virtual void ItemCallback(FunctionHandlerContext context, Packet packet, Queue<Action<IMainHubEngine>> hubMessageQueue, T item, TemperatureSensor sensor, bool wasSensorCreated) { }
+        protected virtual void OnHandled(FunctionHandlerContext context, Module module, Queue<Action<IMainHubEngine>> hubMessageQueue, IReadOnlyCollection<TemperatureSensor> newSensors) { }
 
-        public FunctionHandlerResult Handle(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext context, Packet packet, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public sealed override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
         {
-            if (packet.Module.State != ModuleStateEnum.Identified)
-                return PacketStateEnum.Skipped;
-
-            var items = GetItems(moduleConfiguration, packet);
+            var items = GetItems(context.ModuleConfiguration, packet);
             var module = packet.Module;
-            var moduleTemperatureSensors = context.TemperatureSensors
+            var moduleTemperatureSensors = context.DatabaseContext.TemperatureSensors
                                                   .AsNoTracking()
                                                   .Where(i => i.ModuleID == module.ID)
                                                   .ToDictionary(i => i.Address, i => i);
@@ -44,12 +38,12 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
                 {
                     temperatureSensor = new TemperatureSensor(module, address);
 
-                    context.TemperatureSensors.Add(temperatureSensor);
+                    context.DatabaseContext.TemperatureSensors.Add(temperatureSensor);
                     moduleTemperatureSensors.Add(temperatureSensor.Address, temperatureSensor);
                     newSensors.Add(temperatureSensor);
 
                     isAdded = true;
-                    context.SaveChanges();
+                    context.DatabaseContext.SaveChanges();
 
                     hubMessageQueue.Enqueue(proxy => proxy.NewTemperatureSensor(temperatureSensor.ModuleID, temperatureSensor.ID, temperatureSensor.Address));
                 }
@@ -59,15 +53,15 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
             
             if (newSensors.Count > 0)
             {
-                var message = new Message(functions[FunctionTypeEnum.OwDS18B20TemperaturePeriodical].Key, true)
+                var message = new Message(context.FunctionTypes.Forward[FunctionTypeEnum.OwDS18B20TemperaturePeriodical], true)
                               {
                                   ModuleID = module.ID,
                               };
 
-                context.Messages.Add(message);
+                context.DatabaseContext.Messages.Add(message);
             }
 
-            context.SaveChanges();
+            context.DatabaseContext.SaveChanges();
 
             OnHandled(context, module, hubMessageQueue, newSensors);
 

@@ -1,29 +1,40 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Timers;
 using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
 using piSensorNet.Common.Custom;
+using piSensorNet.Common.Custom.Interfaces;
+using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
 using piSensorNet.DataModel.Enums;
-using piSensorNet.DataModel.Extensions;
 using piSensorNet.Common.System;
 using piSensorNet.Engine.SignalR;
 using piSensorNet.Logic;
+using piSensorNet.Logic.Compilation;
 using piSensorNet.Logic.FunctionHandlers.Base;
+using piSensorNet.Logic.TriggerDependencyHandlers.Base;
+using piSensorNet.Logic.Triggers;
+using piSensorNet.Logic.TriggerSourceHandlers.Base;
 using Module = piSensorNet.DataModel.Entities.Module;
+using Timer = System.Timers.Timer;
 
 [assembly: InternalsVisibleTo("piSensorNet.Tests")]
 
 namespace piSensorNet.Engine
 {
     public delegate void UserFunctionDelegate(IReadOnlyDictionary<string, int> modules);
+
+    internal delegate void MessageHandler(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> moduleAddresses, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, IHubProxy hubProxy, Action<string> logger);
+
+    internal delegate IReadOnlyMap<string, int> CacheModuleAddressesDelegate(PiSensorNetDbContext context);
 
     public static class EngineMain
     {
@@ -38,7 +49,6 @@ namespace piSensorNet.Engine
                 {SignalTypeEnum.HangUp, RedoCacheSignalHandler},
             };
 
-
         private static IConfiguration Configuration { get; } = Common.Configuration.Load("config.json");
         private static IModuleConfiguration ModuleConfiguration { get; } = new ModuleConfiguration(Configuration);
 
@@ -48,12 +58,17 @@ namespace piSensorNet.Engine
 
         private static readonly Action<string> Logger = i => Console.WriteLine($"{DateTime.Now.ToString("O")}: {i}");
 
-        private static IReadOnlyDictionary<string, int> Modules;
-        private static IReadOnlyDictionary<int, string> InverseModules;
-        private static IReadOnlyDictionary<int, IFunctionHandler> FunctionHandlers;
-        private static IReadOnlyDictionary<string, IQueryableFunctionHandler> QueryableFunctionHandlers;
-        private static IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> Functions;
-        private static IReadOnlyDictionary<string, int> InverseFunctions;
+        private static IReadOnlyMap<string, int> ModuleAddresses;
+        private static IReadOnlyMap<FunctionTypeEnum, int> FunctionTypes;
+        private static IReadOnlyMap<string, int> FunctionNames;
+        private static IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> FunctionHandlers;
+        private static IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> QueryableFunctionHandlers;
+        private static IReadOnlyDictionary<TriggerSourceTypeEnum, IReadOnlyCollection<TriggerSource>> TriggerSources;
+        private static IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> TriggerSourceHandlers;
+        private static IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> TriggerDependencyHandlers;
+        private static IReadOnlyDictionary<int, TriggerDelegate> TriggerDelegates;
+
+        private static readonly ConcurrentQueue<TriggerSource> AbsoluteTimeTriggers = new ConcurrentQueue<TriggerSource>();
 
         public static int Main(string[] args)
         {
@@ -62,38 +77,28 @@ namespace piSensorNet.Engine
             var recreate = args.Any(i => String.Equals(i, "recreate", StringComparison.InvariantCultureIgnoreCase));
             var recreateOnly = args.Any(i => String.Equals(i, "recreateOnly", StringComparison.InvariantCultureIgnoreCase));
             var standalone = args.Any(i => String.Equals(i, "standalone", StringComparison.InvariantCultureIgnoreCase));
+            var validateModel = args.Any(i => String.Equals(i, "validateModel", StringComparison.InvariantCultureIgnoreCase));
+
+            standalone = standalone || recreate || recreateOnly || validateModel;
 
             int? serialProcessID = null;
             if (!standalone)
-                serialProcessID = FindSerialProcessID(Configuration, recreate || recreateOnly, Logger);
-            
-            /*
-            Logger("Main: Compiling...");
+                serialProcessID = FindSerialProcessID(Configuration, Logger);
 
-            var methodBody = "Console.WriteLine(\"works! \" + modules[\"kizior\"]);";
-            var result = CompileHelper.CompileTo<UserFunctionDelegate>(methodBody);
-            
-            if (!result.IsSuccessful)
-            {
-                Logger("Errors:");
-                result.CompilerErrors.Each(e => Console.WriteLine($"({e.Line}, {e.Column}) [{e.ErrorNumber}] {e.ErrorText}"));
+            var recreateDatabase = (recreate || recreateOnly) && !validateModel;
 
-                return -1;
-            }
-
-            Logger("Main: Done!");
-            Console.WriteLine(result.Body);
-            result.Method(new Dictionary<string, int>
-                                    {
-                                        {"kizior", 13}
-                                    });
-
-            return -1;
-            */
-
-            PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString, recreate || recreateOnly);
+            PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString, recreateDatabase);
 
             //PiSensorNetDbContext.Logger = Console.Write;
+
+            if (validateModel)
+            {
+                PiSensorNetDbContext.CheckCompatibility(ModuleConfiguration.ConnectionString);
+
+                Logger("Main: Model validation finished, exiting!");
+
+                return 0;
+            }
 
             if (recreateOnly)
             {
@@ -113,45 +118,69 @@ namespace piSensorNet.Engine
 
             BuildCache();
 
-            //Demo();
+            //Demo(ModuleConfiguration, FunctionTypes, FunctionNames, FunctionHandlers, QueryableFunctionHandlers, TriggerSourceHandlers, TriggerDelegates, TriggerDependencyHandlers);
             //return 666;
 
             DisposalQueue toDispose;
-            var hubProxy = InitializeHubConnection(Configuration, ModuleConfiguration, InternalHandleMessage, InverseModules, Functions, serialProcessID, out toDispose, Logger);
+            var hubProxy = InitializeHubConnection(Configuration, ModuleConfiguration, InternalHandleMessage, ModuleAddresses, FunctionTypes, serialProcessID, out toDispose, Logger);
 
-            var handler = Signal.Handle(SignalHandlers);
+            toDispose.Enqueue(Signal.Handle(SignalHandlers));
+
+            var timer = new Timer(1000);
+            timer.Elapsed += HandleTimerTick;
+
+            timer.Start();
 
             Logger("Main: Started!");
 
             while (!_doQuit)
             {
                 if (Constants.IsWindows)
-                    WaitHandle.WaitOne(500);
+                {
+                    WaitHandle.WaitOne(1000);
+
+                    using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
+                    {
+                        _pollPackets = context.Packets
+                                              .Where(i => i.State == PacketStateEnum.New)
+                                              .Where(i => i.FunctionID.HasValue)
+                                              .Any();
+
+                        _pollPartialPackets = _pollPackets
+                                              || context.PartialPackets
+                                                        .AsNoTracking()
+                                                        .Where(i => i.State == PartialPacketStateEnum.New)
+                                                        .Any();
+
+                    }
+                }
                 else
                     WaitHandle.WaitOne();
 
-                if (_pollPartialPackets || Constants.IsWindows)
+                if (_pollPartialPackets)
                 {
                     _pollPartialPackets = false;
 
                     using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
                     {
-                        _pollPackets = MergePackets(context, ModuleConfiguration, Functions, InverseFunctions, Modules, InternalCacheModules, Logger);
+                        _pollPackets = MergePackets(context, ModuleConfiguration, FunctionTypes, FunctionNames, ModuleAddresses, CacheModuleAddresses, Logger);
 
                         if (_pollPackets)
                         {
                             _pollPackets = false;
 
-                            while (HandlePackets(context, ModuleConfiguration, Functions, FunctionHandlers, QueryableFunctionHandlers, hubProxy, serialProcessID, Logger)) { }
+                            while (HandlePackets(context, ModuleConfiguration, FunctionTypes, FunctionNames, FunctionHandlers, QueryableFunctionHandlers, TriggerSourceHandlers, TriggerDelegates, TriggerDependencyHandlers, serialProcessID, hubProxy, Logger)) {}
                         }
                     }
                 }
+
+                HandleAbsoluteTimeTriggers(ModuleConfiguration, TriggerSourceHandlers, TriggerDelegates, AbsoluteTimeTriggers, Logger, TriggerDependencyHandlers);
             }
 
             Logger("Main: Stopping...");
 
-            toDispose?.Dispose();
-            handler.Dispose();
+            timer.Stop();
+            toDispose.Dispose();
 
             Logger("Main: Stopped!");
 
@@ -162,34 +191,31 @@ namespace piSensorNet.Engine
         {
             using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
             {
-                InternalCacheModules(context);
+                ModuleAddresses = CacheModuleAddresses(context);
 
                 var cachedFunctions = CacheFunctions(context);
-                Functions = cachedFunctions.Item1;
-                InverseFunctions = cachedFunctions.Item2;
+                FunctionTypes = cachedFunctions.Item1;
+                FunctionNames = cachedFunctions.Item2;
 
-                var cachedFunctionHandlers = CacheFunctionHandlers(Functions);
+                var cachedFunctionHandlers = CacheFunctionHandlers();
                 FunctionHandlers = cachedFunctionHandlers.Item1;
                 QueryableFunctionHandlers = cachedFunctionHandlers.Item2;
+
+                var cachedTriggerSources = CacheTriggerSources(context);
+                TriggerSources = cachedTriggerSources.Item1;
+                TriggerDelegates = cachedTriggerSources.Item2;
+
+                TriggerSourceHandlers = CacheTriggerSourceHandlers();
+                TriggerDependencyHandlers = CacheTriggerDependencyHandlers();
             }
 
             Logger("BuildCache: Cache built!");
         }
 
-        private static Tuple<IReadOnlyDictionary<string, int>, IReadOnlyDictionary<int, string>> InternalCacheModules(PiSensorNetDbContext context)
-        {
-            var cachedModules = CacheModules(context);
-
-            Modules = cachedModules.Item1;
-            InverseModules = cachedModules.Item2;
-
-            return cachedModules;
-        }
-
         // ReSharper disable once UnusedMember.Local
-        private static void Demo()
+        private static void Demo(IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> functionHandlers, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
         {
-            using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString).WithChangeTracking())
+            using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString).WithChangeTracking())
             {
                 var functionID = context.Functions.AsNoTracking().Where(i => i.FunctionType == FunctionTypeEnum.FunctionList).Select(i => i.ID).Single();
                 var moduleNumber = context.Modules.AsNoTracking().Count() + 1;
@@ -197,14 +223,15 @@ namespace piSensorNet.Engine
 
                 context.Modules
                        .Add(new Module(address)
-                       {
-                           FriendlyName = address,
-                           Description = "Test module",
-                       }
+                            {
+                                FriendlyName = address,
+                                Description = "Test module",
+                            }
                            .Modify(i => i.ModuleFunctions.Add(context.Functions.Select(f => new ModuleFunction(i, f))))
                            .Modify(i => i.Packets.Add(new[]
                                                       {
-                                                          new Packet(i, 0, "identify;function_list;voltage;report;ow_list;ow_ds18b20_temperature;ow_ds18b20_temperature_periodical;", DateTime.Now) // "2854280E02000070|25.75;28AC5F2600008030|25.75;"
+                                                          new Packet(i, 0, "identify;function_list;voltage;report;ow_list;ow_ds18b20_temperature;ow_ds18b20_temperature_periodical;", DateTime.Now)
+                                                              // "2854280E02000070|25.75;28AC5F2600008030|25.75;"
                                                           {
                                                               FunctionID = functionID,
                                                           }
@@ -214,13 +241,13 @@ namespace piSensorNet.Engine
                 context.SaveChanges();
 
                 var module = context.Modules.AsNoTracking().Where(i => i.Address == address).Single();
-                var packet = context.Packets.AsNoTracking().Where(i => i.ModuleID == module.ID).OrderByDescending(i => i.Created).First();
+                var packet = context.Packets.Include(i => i.Function).AsNoTracking().Where(i => i.ModuleID == module.ID).OrderByDescending(i => i.Created).First();
 
                 // ReSharper disable once PossibleInvalidOperationException
-                var functionHandler = FunctionHandlers[packet.FunctionID.Value];
+                var functionHandler = functionHandlers[packet.Function.FunctionType];
                 var taskQueue = new Queue<Action<IMainHubEngine>>();
 
-                functionHandler.Handle(ModuleConfiguration, context, packet, QueryableFunctionHandlers, Functions, ref taskQueue);
+                functionHandler.Handle(new FunctionHandlerContext(moduleConfiguration, context, queryableFunctionHandlers, functionTypes, functionNames, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers), packet, ref taskQueue);
 
                 context.SaveChanges();
             }
@@ -228,13 +255,10 @@ namespace piSensorNet.Engine
 
         #region Init
 
-        private static int? FindSerialProcessID(IConfiguration configuration, bool canContinue, Action<string> logger)
+        private static int? FindSerialProcessID(IConfiguration configuration, Action<string> logger)
         {
             if (Constants.IsWindows)
-                if (!canContinue)
-                    throw new Exception("Linux only!");
-                else
-                    return null;
+                throw new Exception("Linux only!");
 
             var nameFragment = configuration["Settings:SerialProcessNameFragment"];
 
@@ -250,7 +274,7 @@ namespace piSensorNet.Engine
             return pid.Value;
         }
 
-        private static IMainHubEngine InitializeHubConnection(IConfiguration configuration, IModuleConfiguration moduleConfiguration, Action<string, int?, FunctionTypeEnum, bool, string, IReadOnlyDictionary<int, string>, IModuleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>>, int?, IHubProxy, Action<string>> handler, IReadOnlyDictionary<int, string> inverseModules, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
+        private static IMainHubEngine InitializeHubConnection(IConfiguration configuration, IModuleConfiguration moduleConfiguration, MessageHandler handler, IReadOnlyMap<string, int> moduleAddresses, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
         {
             toDispose = new DisposalQueue();
 
@@ -268,11 +292,11 @@ namespace piSensorNet.Engine
 
             toDispose.Enqueue(hubProxy.On<string, int?, FunctionTypeEnum, string>("sendMessage",
                 (clientID, moduleID, functionType, text)
-                    => handler(clientID, moduleID, functionType, false, text, inverseModules, moduleConfiguration, functions, serialProcessID, hubProxy, logger)));
+                    => handler(clientID, moduleID, functionType, false, text, moduleAddresses, moduleConfiguration, functionTypes, serialProcessID, hubProxy, logger)));
 
             toDispose.Enqueue(hubProxy.On<string, int?, FunctionTypeEnum>("sendQuery",
                 (clientID, moduleID, functionType)
-                    => handler(clientID, moduleID, functionType, true, null, inverseModules, moduleConfiguration, functions, serialProcessID, hubProxy, logger)));
+                    => handler(clientID, moduleID, functionType, true, null, moduleAddresses, moduleConfiguration, functionTypes, serialProcessID, hubProxy, logger)));
 
             try
             {
@@ -297,72 +321,139 @@ namespace piSensorNet.Engine
 
         #region Caching
 
-        internal static Tuple<IReadOnlyDictionary<int, IFunctionHandler>, IReadOnlyDictionary<string, IQueryableFunctionHandler>> CacheFunctionHandlers(IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions)
+        internal static Tuple<IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler>, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler>> CacheFunctionHandlers()
         {
-            var baseType = typeof(IFunctionHandler);
-            var handlerTypes = baseType.Assembly
-                                       .GetTypes()
-                                       .Where(i => i.IsNotPublic && i.IsSealed && i.IsClass)
-                                       .Where(baseType.IsAssignableFrom)
-                                       .ToList();
+            var handlerTypes = ReflectionExtensions.GetImplementations<IFunctionHandler>();
 
-            var functionHandlers = new Dictionary<int, IFunctionHandler>();
-            var queryableFunctionHandlers = new Dictionary<string, IQueryableFunctionHandler>();
+            var functionHandlers = new Dictionary<FunctionTypeEnum, IFunctionHandler>();
+            var queryableFunctionHandlers = new Dictionary<FunctionTypeEnum, IQueryableFunctionHandler>();
 
             foreach (var handlerType in handlerTypes)
             {
                 var instance = (IFunctionHandler)Activator.CreateInstance(handlerType);
-                var function = functions.GetValueOrNullable(instance.FunctionType);
 
-                if (!function.HasValue)
-                    continue;
-
-                functionHandlers.Add(function.Value.Key, instance);
+                functionHandlers.Add(instance.FunctionType, instance);
 
                 var queryableInstance = instance as IQueryableFunctionHandler;
                 if (queryableInstance != null)
-                    queryableFunctionHandlers.Add(function.Value.Value, queryableInstance);
+                    queryableFunctionHandlers.Add(instance.FunctionType, queryableInstance);
             }
 
-            return new Tuple<IReadOnlyDictionary<int, IFunctionHandler>, IReadOnlyDictionary<string, IQueryableFunctionHandler>>(functionHandlers, queryableFunctionHandlers);
+            return Tuple.Create(functionHandlers.ReadOnly(), queryableFunctionHandlers.ReadOnly());
         }
 
-        internal static Tuple<IReadOnlyDictionary<string, int>, IReadOnlyDictionary<int, string>> CacheModules(PiSensorNetDbContext context)
+        internal static IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> CacheTriggerSourceHandlers()
+        {
+            var handlerTypes = ReflectionExtensions.GetImplementations<ITriggerSourceHandler>();
+
+            var triggerSourceHandlers = handlerTypes
+                .Select(Activator.CreateInstance)
+                .Cast<ITriggerSourceHandler>()
+                .ToDictionary(i => i.TriggerSourceType);
+
+            return triggerSourceHandlers;
+        }
+
+        internal static IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> CacheTriggerDependencyHandlers()
+        {
+            var handlerTypes = ReflectionExtensions.GetImplementations<ITriggerDependencyHandler>();
+
+            var triggerSourceHandlers = handlerTypes
+                .Select(Activator.CreateInstance)
+                .Cast<ITriggerDependencyHandler>()
+                .ToDictionary(i => i.TriggerDependencyType);
+
+            return triggerSourceHandlers;
+        }
+
+        internal static IReadOnlyMap<string, int> CacheModuleAddresses(PiSensorNetDbContext context)
         {
             var modules = context.Modules
                                  .AsNoTracking()
                                  .Select(i => new
-                                 {
-                                     i.ID,
-                                     i.Address
-                                 })
-                                 .ToDictionary(i => i.Address, i => i.ID);
+                                              {
+                                                  i.ID,
+                                                  i.Address
+                                              })
+                                 .ToMap(i => i.Address, i => i.ID);
 
-            var inverseModules = modules.ToDictionary(i => i.Value, i => i.Key);
-
-            return new Tuple<IReadOnlyDictionary<string, int>, IReadOnlyDictionary<int, string>>(modules, inverseModules);
+            return modules;
         }
 
-        internal static Tuple<IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>>, IReadOnlyDictionary<string, int>> CacheFunctions(PiSensorNetDbContext context)
+        internal static Tuple<IReadOnlyMap<FunctionTypeEnum, int>, IReadOnlyMap<string, int>> CacheFunctions(PiSensorNetDbContext context)
         {
             var functions = context.Functions
                                    .AsNoTracking()
                                    .Select(i => new
-                                   {
-                                       i.FunctionType,
-                                       i.ID,
-                                       i.Name,
-                                   })
-                                   .ToDictionary(i => i.FunctionType, i => KeyValuePair.Create(i.ID, i.Name));
+                                                {
+                                                    i.FunctionType,
+                                                    i.ID,
+                                                    i.Name,
+                                                })
+                                   .ToList();
 
-            var inverseFunctions = functions.ToDictionary(i => i.Value.Value, i => i.Value.Key);
+            var functionTypes = functions.ToMap(i => i.FunctionType, i => i.ID);
+            var functionames = functions.ToMap(i => i.Name, i => i.ID);
 
-            return new Tuple<IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>>, IReadOnlyDictionary<string, int>>(functions, inverseFunctions);
+            return Tuple.Create(functionTypes.ReadOnly(), functionames.ReadOnly());
+        }
+
+        internal static Tuple<IReadOnlyDictionary<TriggerSourceTypeEnum, IReadOnlyCollection<TriggerSource>>, IReadOnlyDictionary<int, TriggerDelegate>> CacheTriggerSources(PiSensorNetDbContext context)
+        {
+            // TODO KZ: test
+            var triggerSources = context.TriggerSources
+                                        .Include(i => i.Trigger)
+                                        .AsNoTracking()
+                                        .ToList();
+
+            var groupedTriggerSources = triggerSources.GroupBy(i => i.TriggerID)
+                                                      .ToDictionary();
+
+            var triggerDependencies = context.TriggerDependencies
+                                             .AsNoTracking()
+                                             .AsEnumerable()
+                                             .GroupBy(i => i.TriggerID)
+                                             .ToDictionary();
+
+            triggerSources.Each(i =>
+                                {
+                                    var trigger = i.Trigger;
+
+                                    if (trigger.TriggerSources.Count == 0)
+                                        trigger.TriggerSources.Add(groupedTriggerSources[trigger.ID]);
+
+                                    if (trigger.TriggerDependencies.Count == 0)
+                                        trigger.TriggerDependencies.Add(triggerDependencies[trigger.ID]);
+                                });
+
+            var typedTriggerSources = triggerSources.GroupBy(i => i.Type)
+                                                    .ToDictionary(i => i.ReadOnly());
+
+            var triggerDelegates = new Dictionary<int, TriggerDelegate>();
+            foreach (var triggerSource in triggerSources)
+            {
+                var trigger = triggerSource.Trigger;
+                if (triggerDelegates.ContainsKey(trigger.ID))
+                    continue;
+
+                var methodCompilationResult = CompileHelper.CompileTo<TriggerDelegate>(trigger.Content);
+                if (!methodCompilationResult.IsSuccessful)
+                {
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                    var errors = methodCompilationResult.CompilerErrors.Select(i => $"({i.Line}, {i.Column}) [{i.ErrorNumber}] {i.ErrorText}").Join(Environment.NewLine);
+
+                    throw new Exception($"Compilation of {nameof(Trigger)} #{trigger} failed.{Environment.NewLine}{errors}");
+                }
+
+                triggerDelegates.Add(trigger.ID, methodCompilationResult.Method);
+            }
+
+            return Tuple.Create(typedTriggerSources.ReadOnly(), triggerDelegates.ReadOnly());
         }
 
         #endregion
 
-        internal static bool MergePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, IReadOnlyDictionary<string, int> inverseFunctions, IReadOnlyDictionary<string, int> modules, Func<PiSensorNetDbContext, Tuple<IReadOnlyDictionary<string, int>, IReadOnlyDictionary<int, string>>> cacheModulesFunction, Action<string> logger)
+        internal static bool MergePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyMap<string, int> moduleAddresses, CacheModuleAddressesDelegate cacheModuleAddresses, Action<string> logger)
         {
             logger("MergePackets: Start...");
 
@@ -374,11 +465,11 @@ namespace piSensorNet.Engine
             //logger("MergePackets: Done selecting..."); // ~14ms
 
             var groupedPackets = partialPackets.GroupBy(i => new
-            {
-                i.Address,
-                i.Number,
-                i.Total
-            })
+                                                             {
+                                                                 i.Address,
+                                                                 i.Number,
+                                                                 i.Total
+                                                             })
                                                .ToList();
 
             var newModules = new Dictionary<string, Module>();
@@ -387,7 +478,7 @@ namespace piSensorNet.Engine
             {
                 var address = packetGroup.Key.Address;
 
-                if (modules.ContainsKey(address) || newModules.ContainsKey(address))
+                if (moduleAddresses.Forward.ContainsKey(address) || newModules.ContainsKey(address))
                     continue;
 
                 var module = new Module(address);
@@ -405,7 +496,7 @@ namespace piSensorNet.Engine
 
                 logger("MergePackets: Done saving modules...");
 
-                modules = cacheModulesFunction(context).Item1;
+                moduleAddresses = cacheModuleAddresses(context);
             }
 
             logger($"MergePackets: Done creating new modules, found {newModules.Count}!"); // 700us, no modules
@@ -415,17 +506,21 @@ namespace piSensorNet.Engine
             {
                 if (packetGroup.Count() != packetGroup.Key.Total)
                 {
-                    context.EnqueueRaw(PartialPacket.GenerateUpdate(context,
-                        new Dictionary<Expression<Func<PartialPacket, object>>, string>
-                        {
-                            {i => i.State, PartialPacketStateEnum.Fragmented.ToSql()}
-                        },
-                        new Tuple<Expression<Func<PartialPacket, object>>, string, string>(i => i.ID, "IN", String.Concat("(", packetGroup.Select(i => i.ID.ToString()).Join(", "), ")"))));
+                    //context.EnqueueRaw(PartialPacket.GenerateUpdate(context,
+                    //    new Dictionary<Expression<Func<PartialPacket, object>>, string>
+                    //    {
+                    //        {i => i.State, PartialPacketStateEnum.Fragmented.ToSql()}
+                    //    },
+                    //    new Tuple<Expression<Func<PartialPacket, object>>, string, string>(i => i.ID, "IN", String.Concat("(", packetGroup.Select(i => i.ID.ToString()).Join(", "), ")"))));
+
+                    context.EnqueueUpdate<PartialPacket>(
+                        i => i.State == PartialPacketStateEnum.Fragmented,
+                        i => packetGroup.Select(ii => ii.ID).Contains(i.ID));
 
                     continue;
                 }
 
-                var moduleID = modules[packetGroup.Key.Address];
+                var moduleID = moduleAddresses.Forward[packetGroup.Key.Address];
                 int? messageID = null;
                 var text = packetGroup.OrderBy(i => i.Current).Select(i => i.Message).Concat();
                 var received = packetGroup.Max(i => i.Received);
@@ -438,16 +533,16 @@ namespace piSensorNet.Engine
                 }
 
                 var functionName = text.SubstringBefore(moduleConfiguration.FunctionResultNameDelimiter).ToLowerInvariant();
-                var functionID = inverseFunctions.GetValueOrNullable(functionName);
+                var functionID = functionNames.Forward.GetValueOrNullable(functionName);
 
                 if (functionID.HasValue)
                     text = text.Substring(functionName.Length + 1);
 
                 var packet = new Packet(moduleID, packetGroup.Key.Number, text, received)
-                {
-                    MessageID = messageID,
-                    FunctionID = functionID,
-                };
+                             {
+                                 MessageID = messageID,
+                                 FunctionID = functionID,
+                             };
 
                 context.Packets.Add(packet);
 
@@ -462,14 +557,19 @@ namespace piSensorNet.Engine
 
                 logger("MergePackets: Saved changes!"); // ~23ms
 
+                //packetGroupWithPacket.Each(p =>
+                //    context.EnqueueRaw(PartialPacket.GenerateUpdate(context,
+                //        new Dictionary<Expression<Func<PartialPacket, object>>, string>
+                //        {
+                //            {i => i.PacketID, p.Item1.ID.ToSql()},
+                //            {i => i.State, PartialPacketStateEnum.Merged.ToSql()},
+                //        },
+                //        new Tuple<Expression<Func<PartialPacket, object>>, string, string>(i => i.ID, "IN", String.Concat("(", p.Item2.Select(i => i.ID.ToString()).Join(", "), ")")))));
+
                 packetGroupWithPacket.Each(p =>
-                    context.EnqueueRaw(PartialPacket.GenerateUpdate(context,
-                        new Dictionary<Expression<Func<PartialPacket, object>>, string>
-                        {
-                            {i => i.PacketID, p.Item1.ID.ToSql()},
-                            {i => i.State, PartialPacketStateEnum.Merged.ToSql()},
-                        },
-                        new Tuple<Expression<Func<PartialPacket, object>>, string, string>(i => i.ID, "IN", String.Concat("(", p.Item2.Select(i => i.ID.ToString()).Join(", "), ")")))));
+                    context.EnqueueUpdate<PartialPacket>(
+                        i => i.PacketID == p.Item1.ID && i.State == PartialPacketStateEnum.Merged,
+                        i => p.Item2.Select(ii => ii.ID).Contains(i.ID)));
 
                 context.ExecuteRaw();
 
@@ -481,7 +581,7 @@ namespace piSensorNet.Engine
             return packetGroupWithPacket.Count > 0;
         }
 
-        internal static bool HandlePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, IReadOnlyDictionary<int, IFunctionHandler> functionHandlers, IReadOnlyDictionary<string, IQueryableFunctionHandler> queryableFunctionHandlers, IMainHubEngine hubProxy, int? serialProcessID, Action<string> logger)
+        internal static bool HandlePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> functionHandlers, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, int? serialProcessID, IMainHubEngine hubProxy, Action<string> logger)
         {
             logger("HandlePackets: Start...");
 
@@ -498,39 +598,55 @@ namespace piSensorNet.Engine
             if (packets.Count == 0)
                 return false;
 
+            var handlerContext = new FunctionHandlerContext(moduleConfiguration, context, queryableFunctionHandlers, functionTypes, functionNames, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers);
+
             var handleAgain = false;
             var newMesagesAdded = false;
             var hubTasksQueue = new Queue<Action<IMainHubEngine>>();
             foreach (var packet in packets)
             {
                 // ReSharper disable once PossibleInvalidOperationException
-                var handler = functionHandlers.GetValueOrDefault(packet.FunctionID.Value);
+                var handler = functionHandlers.GetValueOrDefault(packet.Function.FunctionType);
                 if (handler == null)
                 {
-                    context.EnqueueRaw(Packet.GenerateUpdate(context,
-                        new Dictionary<Expression<Func<Packet, object>>, string>
-                        {
-                            {i => i.State, PacketStateEnum.Unhandled.ToSql()}
-                        },
-                        new Tuple<Expression<Func<Packet, object>>, string, string>(i => i.ID, "=", packet.ID.ToSql())));
+                    //context.EnqueueRaw(Packet.GenerateUpdate(context,
+                    //    new Dictionary<Expression<Func<Packet, object>>, string>
+                    //    {
+                    //        {i => i.State, PacketStateEnum.Unhandled.ToSql()}
+                    //    },
+                    //    new Tuple<Expression<Func<Packet, object>>, string, string>(i => i.ID, "=", packet.ID.ToSql())));
+
+                    context.EnqueueUpdate<Packet>(
+                        i => i.State == PacketStateEnum.Unhandled,
+                        i => i.ID == packet.ID);
 
                     logger($"HandlePackets: Packet #{packet.ID} (function '{packet.Function.FunctionType}') could not be handled, no handler found!");
 
                     continue;
                 }
 
-                var functionHandlerResult = handler.Handle(moduleConfiguration, context, packet, queryableFunctionHandlers, functions, ref hubTasksQueue);
+                var functionHandlerResult = handler.IsModuleIdentityRequired && packet.Module.State != ModuleStateEnum.Identified
+                    ? PacketStateEnum.Skipped
+                    : handler.Handle(handlerContext, packet, ref hubTasksQueue);
 
                 handleAgain = handleAgain || functionHandlerResult.ShouldHandlePacketsAgain;
                 newMesagesAdded = newMesagesAdded || functionHandlerResult.NewMessagesAdded;
 
-                context.EnqueueRaw(Packet.GenerateUpdate(context,
-                    new Dictionary<Expression<Func<Packet, object>>, string>
-                    {
-                        {i => i.State, functionHandlerResult.PacketState.ToSql()},
-                        {i => i.Processed, DateTime.Now.ToSql()}
-                    },
-                    new Tuple<Expression<Func<Packet, object>>, string, string>(i => i.ID, "=", packet.ID.ToSql())));
+                //context.EnqueueRaw(Packet.GenerateUpdate(context,
+                //    new Dictionary<Expression<Func<Packet, object>>, string>
+                //    {
+                //        {i => i.State, functionHandlerResult.PacketState.ToSql()},
+                //        {i => i.Processed, DateTime.Now.ToSql()}
+                //    },
+                //    new Tuple<Expression<Func<Packet, object>>, string, string>(i => i.ID, "=", packet.ID.ToSql())));
+
+                context.EnqueueUpdate<Packet>(
+                    i => i.State == functionHandlerResult.PacketState && i.Processed == DateTime.Now,
+                    i => i.ID == packet.ID);
+
+                if (handler.TriggerSourceType.HasValue && functionHandlerResult.PacketState == PacketStateEnum.Handled)
+                    TriggerSources[handler.TriggerSourceType.Value].Each(i =>
+                        TriggerSourceHandlerHelper.Handle(handlerContext, i, packet.Module.ID));
 
                 logger($"HandlePackets: Packet #{packet.ID} processed to '{functionHandlerResult.PacketState}'" +
                        $"{(functionHandlerResult.NewMessagesAdded ? ", new messaged were added" : String.Empty)}" +
@@ -555,11 +671,11 @@ namespace piSensorNet.Engine
             return handleAgain;
         }
 
-        internal static void HandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyDictionary<int, string> inverseModules, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, IHubProxy hubProxy, Action<string> logger)
+        internal static void HandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> moduleAddresses, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IHubProxy hubProxy, Action<string> logger)
         {
             logger($"HandleMessage: Received message from ${clientID} to @{moduleID?.ToString() ?? "ALL"} - {functionType}{(text == null ? (isQuery ? "?" : String.Empty) : ":" + text)}");
 
-            if (moduleID.HasValue && !inverseModules.ContainsKey(moduleID.Value))
+            if (moduleID.HasValue && !moduleAddresses.Reverse.ContainsKey(moduleID.Value))
             {
                 hubProxy.Invoke("error", clientID, $"Module #{moduleID.Value} does not exist.");
 
@@ -571,10 +687,10 @@ namespace piSensorNet.Engine
             int messageID;
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {
-                var message = new Message(functions[functionType].Key, isQuery)
-                {
-                    ModuleID = moduleID,
-                };
+                var message = new Message(functionTypes.Forward[functionType], isQuery)
+                              {
+                                  ModuleID = moduleID,
+                              };
 
                 if (!isQuery)
                     message.Text = text;
@@ -589,15 +705,59 @@ namespace piSensorNet.Engine
             logger($"HandleMessage: Message handled to #{messageID}!"); // ~38ms
         }
 
-        #region Signal Handlers
-
-        private static void InternalHandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyDictionary<int, string> inverseModules, IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<FunctionTypeEnum, KeyValuePair<int, string>> functions, int? serialProcessID, IHubProxy hubProxy, Action<string> logger)
+        internal static void HandleAbsoluteTimeTriggers(IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, ConcurrentQueue<TriggerSource> absoluteTimeTriggers, Action<string> logger, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
         {
-            HandleMessage(clientID, moduleID, functionType, isQuery, text, inverseModules, moduleConfiguration, functions, hubProxy, logger);
+            if (absoluteTimeTriggers.Count == 0)
+                return;
+
+            logger("HandleAbsoluteTimeTriggers: Start...");
+
+            using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
+            {
+                var handlerContext = new TriggerSourceHandlerHelperContext(context, triggerHandlers, triggerDelegates, triggerDependencyHandlers);
+
+                while (absoluteTimeTriggers.Count > 0)
+                {
+                    TriggerSource triggerSource;
+
+                    if (absoluteTimeTriggers.TryDequeue(out triggerSource))
+                        continue;
+
+                    logger($"HandleAbsoluteTimeTriggers: Handling trigger source #{triggerSource.ID}...");
+
+                    TriggerSourceHandlerHelper.Handle(handlerContext, triggerSource);
+                }
+            }
+
+            logger($"HandleAbsoluteTimeTriggers: Finished handling {absoluteTimeTriggers.Count} trigger source(s)!");
+        }
+
+        private static void HandleTimerTick(object sender, ElapsedEventArgs elapsedEventArgs)
+        {
+            var now = DateTime.Now;
+            var triggerSources = TriggerSources[TriggerSourceTypeEnum.AbsoluteTime]
+                .Where(i => !i.NextAbsoluteTimeExecution.HasValue
+                            || i.NextAbsoluteTimeExecution.Value < now)
+                .ToList();
+
+            if (triggerSources.Count == 0)
+                return;
+
+            foreach (var triggerSource in triggerSources)
+                AbsoluteTimeTriggers.Enqueue(triggerSource);
+
+            WaitHandle.Set();
+        }
+
+        private static void InternalHandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> modules, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, IHubProxy hubProxy, Action<string> logger)
+        {
+            HandleMessage(clientID, moduleID, functionType, isQuery, text, modules, moduleConfiguration, functionTypes, hubProxy, logger);
 
             if (serialProcessID.HasValue)
                 Signal.Send(serialProcessID.Value, SignalTypeEnum.User1);
         }
+        
+        #region Signal Handlers
 
         private static void QuitSignalHandler(SignalTypeEnum signalType)
         {

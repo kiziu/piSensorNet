@@ -1,27 +1,25 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Threading.Tasks;
-using piSensorNet.Common.Extensions;
-using piSensorNet.DataModel.Enums;
+using piSensorNet.Common.Enums;
+using piSensorNet.Logic;
 
 namespace piSensorNet.Web.SignalR
 {
-    public partial class MainHub
+    public partial class MainHub : IMainHubClient
     {
-        public void Identify()
+        public void Identify(int? moduleID)
         {
-            Console.WriteLine($"{Now}: {nameof(Identify)} ${Context.ConnectionId}");
+            Console.WriteLine($"{Now}: {nameof(Identify)}({moduleID?.ToString() ?? "<null>"}) ${Context.ConnectionId}");
 
-            Engine.SendMessage(null, FunctionTypeEnum.Identify);
+            Engine.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.Identify);
         }
 
         public void ReadTemperature(int? moduleID)
         {
             Console.WriteLine($"{Now}: {nameof(ReadTemperature)}({moduleID?.ToString() ?? "<null>"}) ${Context.ConnectionId}");
 
-            Engine.SendMessage(moduleID, FunctionTypeEnum.OwDS18B20Temperature);
+            Engine.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.OwDS18B20Temperature);
         }
 
         public void SetTemperatureReportPeriod(int moduleID, TimeSpan period)
@@ -39,53 +37,7 @@ namespace piSensorNet.Web.SignalR
 
             var text = value.ToString("D", CultureInfo.InvariantCulture);
 
-            Engine.SendMessage(moduleID, FunctionTypeEnum.OwDS18B20TemperaturePeriodical, text);
-        }
-
-        public async Task<IReadOnlyDictionary<int, object>> ListModules()
-        {
-            Console.WriteLine($"{Now}: {nameof(ListModules)} ${Context.ConnectionId}");
-
-            return await Task.Factory.StartNew(() =>
-            {
-                using (var context = _contextFactory())
-                {
-                    return context.Modules
-                                  .ToDictionary(i => i.ID,
-                                      i => (object)new
-                                                   {
-                                                       i.ID,
-                                                       i.FriendlyName,
-                                                       i.Address,
-                                                       i.State
-                                                   });
-                }
-            });
-        }
-
-        public async Task<IReadOnlyDictionary<int, IReadOnlyDictionary<int, object>>> ListTemperatureSensors()
-        {
-            Console.WriteLine($"{Now}: {nameof(ListTemperatureSensors)} ${Context.ConnectionId}");
-
-            return await Task.Factory.StartNew(() =>
-            {
-                using (var context = _contextFactory())
-                {
-                    return context.TemperatureSensors
-                                  .AsEnumerable()
-                                  .GroupBy(i => i.ModuleID)
-                                  .ToDictionary(i => i.Key,
-                                      i => i.ToDictionary(ii => ii.ID,
-                                          ii => (object)new
-                                                        {
-                                                            ii.ID,
-                                                            ii.Address,
-                                                            ii.FriendlyName,
-                                                            ii.Period,
-                                                        })
-                                            .ReadOnly());
-                }
-            });
+            Engine.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.OwDS18B20TemperaturePeriodical, text);
         }
     }
 }

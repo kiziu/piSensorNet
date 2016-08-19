@@ -1,81 +1,29 @@
-﻿(function (piSensorNet, $) {
-    var nodeSelector = '[data-require="hubConnection"]';
-    var connection = null;
-    var onConnectedCallbacks = [];
+﻿(function(root, $) {
+    var _divConverter = $('<div />');
 
-    piSensorNet.hubConnectionID = null;
-    piSensorNet.hub = null;
-
-    piSensorNet.initHub = function($connection) {
-        connection = $connection;
-
-        piSensorNet.changeNodesState(false);
-
-        var hub = connection.mainHub;
-
-        hub.logging = true;
-
-        piSensorNet.hub = hub;
-
-        piSensorNet.on('error',
-            function(message) {
-                noty({
-                    'text': message,
-                    'type': 'error',
-                    'modal': true
-                });
-            });
-
-        return hub;
+    root.htmlDecode = function(sInput) {
+        return _divConverter.html(sInput).text();
     }
 
-    piSensorNet.connectHub = function () {
-        connection.hub.start({ transport: ['webSockets', 'serverSentEvents', 'longPolling'] })
-            .done(function () {
-                piSensorNet.hubConnectionID = connection.hub.id;
-                piSensorNet.changeNodesState(true);
+    root.htmlEncode = function(sInput) {
+        if (!sInput)
+            return null;
 
-                console.log('Connected, ID: ' + piSensorNet.hubConnectionID + '.');
-
-                onConnectedCallbacks.forEach(function (callback) { callback.apply(piSensorNet.hubConnectionID); });
-                onConnectedCallbacks = [];
-            });
-    };
-
-    piSensorNet.onConnected = function(callback) {
-        onConnectedCallbacks.push(callback);
+        return _divConverter.text(sInput).html();
     }
-
-    piSensorNet.changeNodesState = function (bState) {
-        var sState = bState ? null : 'disabled';
-
-        $(nodeSelector).prop('disabled', sState);
-    };
-
-
-    piSensorNet.on = function (name, handler) {
-        piSensorNet.hub.client[name] = handler;
-    };
-
-    piSensorNet.handle = function (oNode, functionName, args, callback) {
-        if (oNode)
-            oNode.disabled = true;
-
-        console.log(functionName + ': calling...');
-        piSensorNet.hub.server[functionName].apply(this, args)
-            .done(function (result) {
-                console.log(functionName + ': done');
-                console.log(result);
-
-                $.isFunction(callback) && callback.call(this, result);
-
-                if (oNode)
-                    oNode.disabled = false;
-            });
-    };
-
-    piSensorNet.call = function (functionName, args, callback) {
-        piSensorNet.handle(null, functionName, args, callback);
-    };
-
+    
+    root.createSetterException = function(propertyName) {
+        return function() {
+            throw 'setting the value of ' + propertyName + ' is not permitted';
+        };
+    }
+    
+    Object.defineProperty(root,
+        'ResourcesPath',
+        {
+            set: root.createSetterException('piSensorNet.ResourcesPath'),
+            get: function () {
+                return 'Resources.Manual';
+            }
+        });
 }(window.piSensorNet = window.piSensorNet || {}, jQuery));

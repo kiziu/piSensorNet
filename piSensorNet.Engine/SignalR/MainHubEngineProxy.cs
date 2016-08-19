@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.SignalR.Client;
-using piSensorNet.DataModel.Enums;
+using piSensorNet.Common.Enums;
 using piSensorNet.Logic;
 
 namespace piSensorNet.Engine.SignalR
@@ -21,7 +21,7 @@ namespace piSensorNet.Engine.SignalR
             _proxy.Invoke(nameof(Error), clientID, message);
         }
 
-        public void NewModuleFunctions(int moduleID, IReadOnlyCollection<FunctionTypeEnum> functions)
+        public void NewModuleFunctions(int moduleID, IReadOnlyCollection<KeyValuePair<FunctionTypeEnum, string>> functions)
         {
             _proxy.Invoke(nameof(NewModuleFunctions), moduleID, functions);
         }

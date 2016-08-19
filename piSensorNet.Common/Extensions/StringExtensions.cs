@@ -7,6 +7,16 @@ namespace piSensorNet.Common.Extensions
 {
     public static class StringExtensions
     {
+        [CanBeNull]
+        [ContractAnnotation("null => null")]
+        public static string TrimToNull([CanBeNull] this string input)
+        {
+            if (String.IsNullOrWhiteSpace(input))
+                return null;
+
+            return input.Trim();
+        }
+
         public static string SubstringBetween(this string haystack, string leftNeedle,
             string rightNeedle, bool includeNeedles = false)
         {
@@ -117,6 +127,14 @@ namespace piSensorNet.Common.Extensions
 
                 yield return input.Substring(index, chunkLength);
             }
+        }
+
+        public static string RemoveEnd(this string haystack, string needle, StringComparison comparisonType = StringComparison.InvariantCulture)
+        {
+            if (!haystack.EndsWith(needle, comparisonType))
+                return haystack;
+
+            return haystack.Substring(0, haystack.Length - needle.Length);
         }
     }
 }

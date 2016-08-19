@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using piSensorNet.Common;
-using piSensorNet.DataModel.Context;
+using piSensorNet.Common.Enums;
+using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.DataModel.Enums;
 using piSensorNet.Logic.FunctionHandlers.Base;
 
 namespace piSensorNet.Logic.FunctionHandlers
@@ -13,19 +14,28 @@ namespace piSensorNet.Logic.FunctionHandlers
     internal sealed class OwDS18B20Temperature : TemperatureSensorsFinderBase<KeyValuePair<string, string>>
     {
         public override FunctionTypeEnum FunctionType => FunctionTypeEnum.OwDS18B20Temperature;
+        public override TriggerSourceTypeEnum? TriggerSourceType => TriggerSourceTypeEnum.TemperatureReadout;
 
         protected override IReadOnlyCollection<KeyValuePair<string, string>> GetItems(IModuleConfiguration moduleConfiguration, Packet packet)
             => FunctionHandlerHelper.SplitPairs(packet.Text, moduleConfiguration.FunctionResultDelimiter, moduleConfiguration.FunctionResultValueDelimiter);
 
         protected override Func<KeyValuePair<string, string>, string> GetAddress => pair => pair.Key;
 
-        protected override void ItemCallback(PiSensorNetDbContext context, Packet packet, Queue<Action<IMainHubEngine>> hubMessageQueue, KeyValuePair<string, string> item, TemperatureSensor sensor, bool wasSensorCreated)
+        protected override void ItemCallback(FunctionHandlerContext context, Packet packet, Queue<Action<IMainHubEngine>> hubMessageQueue, KeyValuePair<string, string> item, TemperatureSensor sensor, bool wasSensorCreated)
         {
-            var reading = decimal.Parse(item.Value, CultureInfo.InvariantCulture);
+            decimal reading;
+            if(!decimal.TryParse(item.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out reading))
+            {
+                Log(context, packet,
+                    MethodBase.GetCurrentMethod().GetFullName(),
+                    $"Could not parse text '{item.Value}' to decimal temperature.");
 
-            var temperatureReading = new TemperatureReading(sensor.ID, reading, packet.Received);
+                return;
+            }
+            
+            var temperatureReading = new TemperatureReadout(sensor.ID, reading, packet.Received);
 
-            context.TemperatureReadings.Add(temperatureReading);
+            context.DatabaseContext.TemperatureReadouts.Add(temperatureReading);
 
             hubMessageQueue.Enqueue(proxy => proxy.NewTemperatureReading(packet.Module.ID, temperatureReading.TemperatureSensorID, temperatureReading.Value, temperatureReading.Created, temperatureReading.Received));
         }

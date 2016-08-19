@@ -1,22 +1,38 @@
 {
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iisExpress": {
-      "applicationUrl": "http://localhost:9286/",
-      "sslPort": 0
-    }
-  },
-  "profiles": {
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "launchUrl": "http://localhost:9286"
+    "iisSettings": {
+        "windowsAuthentication": false,
+        "anonymousAuthentication": true,
+        "iisExpress": {
+            "applicationUrl": "http://localhost:9286/",
+            "sslPort": 0
+        }
     },
-    "web": {
-      "commandName": "web",
-      "launchBrowser": true,
-      "launchUrl": "http://localhost:8080"
+    "profiles": {
+        "IIS Express": {
+            "commandName": "IISExpress",
+            "launchBrowser": true,
+            "launchUrl": "http://localhost:9286",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        "web": {
+            "commandName": "web",
+            "launchBrowser": true,
+            "launchUrl": "http://localhost:8080",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        "vs": {
+            "executablePath": "C:\\Users\\kiziu\\.dnx\\runtimes\\dnx-clr-win-x86.1.0.0-rc1-update2\\bin\\dnx.exe",
+            "commandLineArgs": "web",
+            "launchBrowser": false,
+            "launchUrl": "http://localhost:8080/",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "DEBUG_PROFILE": "vs"
+            }
+        }
     }
-  }
 }

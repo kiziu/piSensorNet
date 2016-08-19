@@ -1,20 +1,19 @@
 using System;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
+using piSensorNet.Common.Custom;
+using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.System;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.DataModel.Enums;
-using piSensorNet.DataModel.Extensions;
 using piSensorNet.WiringPi.Managed;
 using piSensorNet.WiringPi.Managed.Enums;
 
@@ -32,6 +31,7 @@ namespace piSensorNet.Serial
                 {SignalTypeEnum.Quit, QuitSignalHandler},
                 {SignalTypeEnum.Interrupt, QuitSignalHandler},
                 {SignalTypeEnum.User1, NeMessageToSendSignalHandler},
+                {SignalTypeEnum.User2, TestSignalHandler},
             };
 
         private static IConfiguration Configuration { get; } = Common.Configuration.Load("config.json");
@@ -54,64 +54,111 @@ namespace piSensorNet.Serial
         {
             Logger("Main: Initializing Serial Monitor..");
 
-            var engineProcessID = FindSerialProcessID(Configuration, Logger);
+            var engineProcessID = (int?)null;// FindSerialProcessID(Configuration, Logger);
 
-            PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString);
+            //PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString);
 
             //PiSensorNetDbContext.Logger = Console.Write;
 
             Logger("Main: Context initialized!");
 
-            var signalHandler = Signal.Handle(SignalHandlers);
+            DisposalQueue toDispose;
+            var hubProxy = InitializeHubConnection(Configuration, out toDispose, Logger);
 
-            Pi.Serial.Open();
+            toDispose.Enqueue(Signal.Handle(SignalHandlers));
+            
+            //Pi.Serial.Open();
 
-            Pi.Pins.Setup(BroadcomPinNumberEnum.Gpio18, PinModeEnum.Input, PullUpModeEnum.Up);
-            var interruptHandler = Pi.Interrupts.SetupPolled(BroadcomPinNumberEnum.Gpio18, InterruptModeEnum.FallingEdge, SerialInterruptHandler);
-
+            //Pi.Pins.Setup(BroadcomPinNumberEnum.Gpio18, PinModeEnum.Input, PullUpModeEnum.Up);
+            //var interruptHandler = Pi.Interrupts.SetupPolled(BroadcomPinNumberEnum.Gpio18, InterruptModeEnum.FallingEdge, SerialInterruptHandler);
+            
             Logger("Main: Started!");
 
             while (!_doQuit)
             {
-                WaitHandle.WaitOne(_readSerial == 0 ? -1 : 3);
-
+                WaitHandle.WaitOne();
                 if (_readSerial > 0)
                 {
                     --_readSerial;
-                    if (ReadSerial(ReceivedMessages, Buffer, Logger))
-                    {
-                        ++_readSerial;
-                        continue;
-                    }
 
-                    if (_readSerial > 0)
-                        continue;
+                    Logger("Main: Sending message to engine via hub");
+                    hubProxy.Invoke("sendMQuery", "some_ID", 666, FunctionTypeEnum.OwDS18B20TemperaturePeriodical);
                 }
+                //WaitHandle.WaitOne(_readSerial == 0 ? -1 : 3);
 
-                HandleReceivedMessages(engineProcessID, ReceivedMessages, ModuleConfiguration, Logger);
+                //if (_readSerial > 0)
+                //{
+                //    --_readSerial;
+                //    if (ReadSerial(ReceivedMessages, Buffer, Logger))
+                //    {
+                //        ++_readSerial;
+                //        continue;
+                //    }
 
-                if (_pollMessagesToSend)
-                {
-                    _pollMessagesToSend = false;
-                    PollMessagesToSend(MessagesToSend, ModuleConfiguration, Logger);
-                }
+                //    if (_readSerial > 0)
+                //        continue;
+                //}
 
-                _lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, ModuleConfiguration, MessageBuilder, Logger);
+                //HandleReceivedMessages(engineProcessID, ReceivedMessages, ModuleConfiguration, Logger);
+
+                //if (_pollMessagesToSend)
+                //{
+                //    _pollMessagesToSend = false;
+                //    PollMessagesToSend(MessagesToSend, ModuleConfiguration, Logger);
+                //}
+
+                //_lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, ModuleConfiguration, MessageBuilder, Logger);
             }
 
             Logger("Main: Stopping...");
 
-            interruptHandler.Dispose();
-            Pi.Interrupts.Remove(BroadcomPinNumberEnum.Gpio18);
+            //interruptHandler.Dispose();
+            //Pi.Interrupts.Remove(BroadcomPinNumberEnum.Gpio18);
 
-            Pi.Serial.Flush();
-            Pi.Serial.Close();
+            //Pi.Serial.Flush();
+            //Pi.Serial.Close();
 
-            signalHandler.Dispose();
+            toDispose.Dispose();
 
             Logger("Main: Stopped!");
 
             return 0;
+        }
+
+
+        private static IHubProxy InitializeHubConnection(IConfiguration configuration, out DisposalQueue toDispose, Action<string> logger)
+        {
+            toDispose = new DisposalQueue();
+
+            var hubConnection = new HubConnection(configuration["Settings:WebAddress"],
+                new Dictionary<string, string>
+                {
+                    {
+                        configuration["Settings:SignalREngineFlagName"], true.ToString().ToLowerInvariant()
+                    }
+                });
+
+            hubConnection.StateChanged += change => logger($"InitializeHubConnection: StateChanged: '{change.OldState}' -> '{change.NewState}'!");
+
+            var hubProxy = hubConnection.CreateHubProxy(configuration["Settings:SignalRHubName"]);
+            
+            try
+            {
+                hubConnection.Start().Wait();
+            }
+            catch (Exception e)
+            {
+                logger($"InitializeHubConnection: ERROR: Exception occurred while initializing hub connection: {e.Message}.");
+
+                toDispose = null;
+                return null;
+            }
+
+            logger($"InitializeHubConnection: Connection to hub started with ID '{hubConnection.ConnectionId}'!");
+
+            toDispose.Enqueue(hubConnection);
+
+            return hubProxy;
         }
 
         private static int? FindSerialProcessID(IConfiguration configuration, Action<string> logger)
@@ -203,15 +250,19 @@ namespace piSensorNet.Serial
                         var state = isOk ? MessageStateEnum.Completed : MessageStateEnum.Failed;
                         var error = isFailed ? text.Substring("FAIL ".Length) : null;
                         
-                        context.EnqueueRaw(Message.GenerateUpdate(context,
-                            new Dictionary<Expression<Func<Message, object>>, string>
-                            {
-                                {i => i.State, state.ToSql()},
-                                {i => i.ResponseReceived, DateTime.Now.ToSql()},
-                                {i => i.Error, error.ToSql()},
-                            },
-                            new Tuple<Expression<Func<Message, object>>, string, string>(i => i.ID, "=", _lastMessageSentID.Value.ToSql())));
-                        
+                        //context.EnqueueRaw(Message.GenerateUpdate(context,
+                        //    new Dictionary<Expression<Func<Message, object>>, string>
+                        //    {
+                        //        {i => i.State, state.ToSql()},
+                        //        {i => i.ResponseReceived, DateTime.Now.ToSql()},
+                        //        {i => i.Error, error.ToSql()},
+                        //    },
+                        //    new Tuple<Expression<Func<Message, object>>, string, string>(i => i.ID, "=", _lastMessageSentID.Value.ToSql())));
+
+                        context.EnqueueUpdate<Message>(
+                            i => i.State == state && i.ResponseReceived == DateTime.Now && i.Error == error,
+                            i => i.ID == _lastMessageSentID.Value);
+
                         logger($"HandleReceivedMessages: Updated message #{_lastMessageSentID.Value} to '{state}'!");
                         
                         _lastMessageSentID = null;
@@ -309,13 +360,17 @@ namespace piSensorNet.Serial
             
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {
-                context.EnqueueRaw(Message.GenerateUpdate(context,
-                    new Dictionary<Expression<Func<Message, object>>, string>
-                    {
-                        {i => i.State, MessageStateEnum.Sent.ToSql()},
-                        {i => i.Sent, DateTime.Now.ToSql()},
-                    },
-                    new Tuple<Expression<Func<Message, object>>, string, string>(i => i.ID, "=", messageToSend.ID.ToSql())));
+                //context.EnqueueRaw(Message.GenerateUpdate(context,
+                //    new Dictionary<Expression<Func<Message, object>>, string>
+                //    {
+                //        {i => i.State, MessageStateEnum.Sent.ToSql()},
+                //        {i => i.Sent, DateTime.Now.ToSql()},
+                //    },
+                //    new Tuple<Expression<Func<Message, object>>, string, string>(i => i.ID, "=", messageToSend.ID.ToSql())));
+
+                context.EnqueueUpdate<Message>(
+                    i => i.State == MessageStateEnum.Sent && i.Sent == DateTime.Now,
+                    i => i.ID == messageToSend.ID);
 
                 context.ExecuteRaw();
             }
@@ -348,6 +403,14 @@ namespace piSensorNet.Serial
             Logger("Received new message signal!");
 
             _pollMessagesToSend = true;
+            WaitHandle.Set();
+        }
+
+        private static void TestSignalHandler(SignalTypeEnum signalType)
+        {
+            Logger("Received test signal!");
+
+            ++_readSerial;
             WaitHandle.Set();
         }
 

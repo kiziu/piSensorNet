@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using piSensorNet.DataModel.Enums;
+using piSensorNet.Common.Enums;
 
 namespace piSensorNet.Logic.Custom
 {

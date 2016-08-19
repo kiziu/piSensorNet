@@ -7,14 +7,10 @@ namespace piSensorNet.Web.Extensions
 {
     public static class MainHubExtensions
     {
-        public static dynamic Engine(this IHubContext<MainHub> hubContext)
-        {
-            return hubContext.Clients.Client(MainHub.EngineClientConnectionID);
-        }
+        public static dynamic Engine(this IHubContext<MainHub> hubContext) 
+            => hubContext.Clients.Client(MainHub.EngineClientConnectionID);
 
-        public static dynamic NonEngine(this IHubContext<MainHub> hubContext)
-        {
-            return hubContext.Clients.AllExcept(MainHub.EngineClientConnectionID);
-        }
+        public static dynamic NonEngine(this IHubContext<MainHub> hubContext) 
+            => hubContext.Clients.AllExcept(MainHub.EngineClientConnectionID);
     }
 }

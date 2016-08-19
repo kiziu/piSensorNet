@@ -45,8 +45,8 @@ namespace piSensorNet.DataModel.Entities
         public int ModuleID { get; set; }
 
         [Required]
-        [Column(TypeName = "varchar")]
-        [MaxLength(50)]
+        [Column(TypeName = "char")]
+        [MaxLength(16)]
         public string Address { get; set; }
 
         [Column(TypeName = "varchar")]
@@ -61,6 +61,6 @@ namespace piSensorNet.DataModel.Entities
         public virtual Module Module { get; set; }
 
 
-        public virtual ICollection<TemperatureReading> TemperatureReadings { get; protected internal set; } = new List<TemperatureReading>();
+        public virtual ICollection<TemperatureReadout> TemperatureReadings { get; protected internal set; } = new List<TemperatureReadout>();
     }
 }
