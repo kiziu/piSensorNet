@@ -134,7 +134,7 @@ namespace piSensorNet.Serial
                 new Dictionary<string, string>
                 {
                     {
-                        configuration["Settings:SignalREngineFlagName"], true.ToString().ToLowerInvariant()
+                        configuration["Settings:SignalRSerialFlagName"], true.ToString().ToLowerInvariant()
                     }
                 });
 
