@@ -1,5 +1,7 @@
 ﻿(function (root, dataTables, $) {
-    dataTables.dateFormatter = function(format) {
+    dataTables.dateFormatter = function (format) {
+        format = format || root.DateTimeFormat;
+
         return function(data, type, row, meta) {
             return moment(data).format(format);
         };
@@ -12,6 +14,10 @@
 
             return root.Resources.localize(prefix + '_' + data);
         };
+    }
+
+    dataTables.enumLocalizer = function(prefix) {
+        return dataTables.localizer(prefix, 'name');
     }
 
     dataTables.actions = function (actions, properties) {

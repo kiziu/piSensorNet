@@ -1,9 +1,10 @@
 using System;
 using piSensorNet.Common.Enums;
+using piSensorNet.Web.Models.Base;
 
 namespace piSensorNet.Web.Models
 {
-    public class ModuleListItemModel
+    public sealed class ModuleListItemModel : BaseModel
     {
         public int ID { get; set; }
         

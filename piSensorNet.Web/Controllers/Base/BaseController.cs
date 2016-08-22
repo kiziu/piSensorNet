@@ -14,6 +14,7 @@ namespace piSensorNet.Web.Controllers.Base
 
         private string _hubConnectionID;
 
+        [NotNull]
         protected string HubConnectionID
         {
             get
@@ -41,12 +42,13 @@ namespace piSensorNet.Web.Controllers.Base
             ContextFactory = contextFactory;
         }
 
-        protected JsonResult JsonSuccess()
+
+        protected static JsonResult JsonSuccess()
         {
             return new JsonResult(new JsonResultWrapper<object>((object)null));
         }
 
-        protected JsonResult Json<T>(T result, bool success = true)
+        protected static JsonResult Json<T>(T result, bool success = true)
         {
             return new JsonResult(new JsonResultWrapper<T>(result)
                                   {
@@ -54,9 +56,9 @@ namespace piSensorNet.Web.Controllers.Base
                                   });
         }
 
-        protected JsonResult JsonFailure(params string[] errors) => JsonFailure((IReadOnlyList<string>)errors);
+        protected static JsonResult JsonFailure(params string[] errors) => JsonFailure((IReadOnlyList<string>)errors);
 
-        protected JsonResult JsonFailure(IReadOnlyList<string> errors)
+        protected static JsonResult JsonFailure(IReadOnlyList<string> errors)
         {
             return new JsonResult(new JsonResultWrapper<object>(errors));
         }

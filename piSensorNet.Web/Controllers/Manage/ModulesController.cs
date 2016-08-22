@@ -83,9 +83,7 @@ namespace piSensorNet.Web.Controllers.Manage
                                    .OrderBy(i => 1);
 
                 foreach (var column in query.ColumnSortingDefinitions)
-                    items = items.ThenBy(
-                        ExpressionExtensions.Create<Module>(query.ColumnDefinitions[column.ColumnIndex].PropertyName),
-                        column.Direction);
+                    items = items.ThenBy(query.ColumnDefinitions[column.ColumnIndex].PropertyName, column.Direction);
 
                 var entities = items.ToList();
 

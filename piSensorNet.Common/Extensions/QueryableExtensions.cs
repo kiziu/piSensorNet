@@ -8,8 +8,8 @@ namespace piSensorNet.Common.Extensions
 {
     public static class QueryableExtensions
     {
-        public static T? SingleOrNullable<T>(this IQueryable<T> source)
-            where T : struct
+        public static TElement? SingleOrNullable<TElement>(this IQueryable<TElement> source)
+            where TElement : struct
         {
             var result = source.ToList();
 
@@ -26,8 +26,8 @@ namespace piSensorNet.Common.Extensions
             }
         }
 
-        public static T? FirstOrNullable<T>(this IQueryable<T> source)
-            where T : struct
+        public static TElement? FirstOrNullable<TElement>(this IQueryable<TElement> source)
+            where TElement : struct
         {
             var result = source.ToList();
 
@@ -41,7 +41,7 @@ namespace piSensorNet.Common.Extensions
             }
         }
 
-        public static IOrderedQueryable<TSource> OrderBy<TSource, TKey>(this IQueryable<TSource> source, Expression<Func<TSource, TKey>> keySelector, SortingDirectionEnum direction)
+        public static IOrderedQueryable<TElement> OrderBy<TElement, TKey>(this IQueryable<TElement> source, Expression<Func<TElement, TKey>> keySelector, SortingDirectionEnum direction)
         {
             switch (direction)
             {
@@ -56,7 +56,7 @@ namespace piSensorNet.Common.Extensions
             }
         }
 
-        public static IOrderedQueryable<TSource> ThenBy<TSource, TKey>(this IOrderedQueryable<TSource> source, Expression<Func<TSource, TKey>> keySelector, SortingDirectionEnum direction)
+        public static IOrderedQueryable<TElement> ThenBy<TElement, TKey>(this IOrderedQueryable<TElement> source, Expression<Func<TElement, TKey>> keySelector, SortingDirectionEnum direction)
         {
             if (Reflector.Instance<TKey>.Type == Reflector.Instance<object>.Type)
                 return InternalSort(source, keySelector, direction);
@@ -74,7 +74,14 @@ namespace piSensorNet.Common.Extensions
             }
         }
 
-        private static IOrderedQueryable<TSource> InternalSort<TSource, TKey>(IOrderedQueryable<TSource> source, Expression<Func<TSource, TKey>> keySelector, SortingDirectionEnum direction)
+        public static IOrderedQueryable<TElement> ThenBy<TElement>(this IOrderedQueryable<TElement> source, string propertyName, SortingDirectionEnum direction)
+        {
+            var keySelector = ExpressionExtensions.Create<TElement>(propertyName);
+
+            return ThenBy(source, keySelector, direction);
+        }
+
+        private static IOrderedQueryable<TElement> InternalSort<TElement, TKey>(IOrderedQueryable<TElement> source, Expression<Func<TElement, TKey>> keySelector, SortingDirectionEnum direction)
         {
             var methodName = "ThenBy" + (direction == SortingDirectionEnum.Descending ? "Descending" : String.Empty);
             var unary = (UnaryExpression)keySelector.Body;
@@ -88,7 +95,7 @@ namespace piSensorNet.Common.Extensions
                 new[] {source.ElementType, memberType}, 
                 source.Expression, lambda);
 
-            return (IOrderedQueryable<TSource>)source.Provider.CreateQuery<TSource>(sort);
+            return (IOrderedQueryable<TElement>)source.Provider.CreateQuery<TElement>(sort);
         }
     }
 }

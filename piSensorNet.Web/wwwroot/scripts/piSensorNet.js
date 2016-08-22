@@ -26,4 +26,13 @@
                 return 'Resources.Manual';
             }
         });
+
+    Object.defineProperty(root,
+        'DateTimeFormat',
+        {
+            set: root.createSetterException('piSensorNet.DateTimeFormat'),
+            get: function () {
+                return 'D/MM/YYYY, HH:mm:ss';
+            }
+        });
 }(window.piSensorNet = window.piSensorNet || {}, jQuery));

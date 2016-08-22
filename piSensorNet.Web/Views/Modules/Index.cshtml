@@ -41,142 +41,32 @@
                             {
                                 'data': 'State',
                                 'type': 'string',
-                                'render': piSensorNet.DataTables
-                                    .localizer('@(Html.ResourcePrefix<Enums, ModuleStateEnum>())', 'name')
+                                'render': piSensorNet.DataTables.enumLocalizer('@(Html.ResourcePrefix<Enums, ModuleStateEnum>())')
                             },
                             {
                                 'data': 'Created',
                                 'type': 'date',
-                                'render': piSensorNet.DataTables.dateFormatter('D/MM/YYYY, HH:mm:ss')
+                                'render': piSensorNet.DataTables.dateFormatter()
                             },
                             piSensorNet.DataTables.actions({
                                 'edit': {
                                     'title': 'Edit',
                                     'text': $('<span />').addClass('fa').addClass('fa-pencil-square-o'),
                                     'handler': function(settings, rowIndex, columnIndex, data) {
-                                        $('div#dialog')
-                                            .load('@(Url.Action("Edit", "Modules", "Manage"))/' + data['@(nameof(ModuleListItemModel.ID))'],
-                                                function() {
-                                                    var $dialog = $(this);
-                                                    var $footer = $('<div />').addClass('ui-dialog-footer');
-                                                    var $dialogFooter = $dialog.find('[data-target="footer"]');
+                                        var url = '@(Url.Action("Edit", "Modules", "Manage"))/' +
+                                            data['@(nameof(ModuleListItemModel.ID))'];
+                                        var title = 'Edit module @@' + data['@(nameof(ModuleListItemModel.Address))'];
 
-                                                    $dialogFooter.detach();
-                                                    $footer.append($dialogFooter.html());
-
-                                                    var $dialogParent = $dialog.parent();
-
-                                                    $dialogParent.append($footer);
-                                                    $dialog.height($dialog.height() - $footer.height());
-
-                                                    var $form = $dialog.find('form');
-                                                    $.validator.unobtrusive.parse($form);
-
-                                                    $dialogParent.find('[data-action="form.submit"]')
-                                                        .on('click.ActionFormSubmit',
-                                                            function() {
-                                                                $form.submit();
-                                                            });
-
-                                                    $dialogParent.find('[data-action="dialog.close"]')
-                                                        .on('click.ActionFormSubmit',
-                                                            function() {
-                                                                $dialog.dialog('close');
-                                                            });
-
-                                                    $form.on('submit',
-                                                        function(event) {
-                                                            event.preventDefault();
-
-                                                            var $this = $(this);
-                                                            if (!$this.valid())
-                                                                return;
-
-                                                            var
-                                                                $wholeDialog =
-                                                                    $('div#dialog').closest('[role="dialog"]');
-
-                                                            $wholeDialog.loading();
-                                                            $wholeDialog.find('[data-disable="submit"]')
-                                                                .prop('disabled', true);
-
-                                                            $.ajax({
-                                                                'url': $this.attr('action'),
-                                                                'contentType': 'application/json',
-                                                                'dataType ': 'json',
-                                                                'type': 'POST',
-                                                                'cache': false,
-                                                                'processData': false,
-                                                                'data': JSON.stringify($this.serializeObject()),
-                                                                'success': function(result, textStatus, jqXHR) {
-                                                                    var $d = $('div#dialog');
-                                                                    var $dp = $d.closest('[role="dialog"]');
-
-                                                                    $dp.loading('stop');
-                                                                    $dp.find('[data-disable="submit"]')
-                                                                        .prop('disabled', false);
-
-                                                                    if (!result.success) {
-                                                                        var errors = result.data;
-
-                                                                        console.log(errors);
-
-                                                                        $this.applyModelState(errors);
-
-                                                                        return;
-                                                                    }
-
-                                                                    $d.dialog('close');
-
-                                                                    settings.oInstance.api().ajax.reload();
-                                                                    noty({
-                                                                        'type': 'information',
-                                                                        'text': result.data,
-                                                                        'timeout': 5000
-                                                                    });
-                                                                },
-                                                                'error': function(jqXHR, textStatus, errorThrown) {
-                                                                    var $d = $('div#dialog');
-                                                                    var $dp = $d.closest('[role="dialog"]');
-
-                                                                    $dp.loading('stop');
-                                                                    $d.dialog('close');
-
-                                                                    noty({
-                                                                        'type': 'error',
-                                                                        'text': textStatus,
-                                                                        'timeout': false
-                                                                    });
-                                                                    debugger;
-                                                                }
-                                                            });
-                                                        });
-
-                                                    $dialog.dialog('open');
-                                                })
-                                            .dialog({
-                                                'title': 'Edit module @@' + data['@(nameof(ModuleListItemModel.Address))'],
-                                                'dialogClass': 'no-close',
-                                                'autoOpen': false,
-                                                'modal': true,
-                                                'width': $(window).width() * 0.95,
-                                                'height': $(window).height() * 0.95,
-                                                'draggable': false,
-                                                'resizable': false,
-                                                'closeOnEscape': false,
-                                                'close': function() {
-                                                    var $this = $(this);
-
-                                                    $this.parent().find('.ui-dialog-footer').remove();
-                                                    $this.empty();
-                                                }
+                                        piSensorNet.Dialog.editor(url, title,
+                                            function() {
+                                                settings.oInstance.api().ajax.reload();
                                             });
                                     }
                                 },
                                 'identify': {
                                     'title': 'Identify',
                                     'text': $('<span />').addClass('fa').addClass('fa-hand-spock-o'),
-                                    'handler': function (settings, rowIndex, columnIndex, data) {
+                                    'handler': function(settings, rowIndex, columnIndex, data) {
                                         var id = data && data['@(nameof(ModuleListItemModel.ID))'];
 
                                         piSensorNet.Net.call('@(nameof(IMainHubClient.Identify))', [id]);
