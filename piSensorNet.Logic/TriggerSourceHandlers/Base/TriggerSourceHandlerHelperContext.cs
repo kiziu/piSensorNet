@@ -10,7 +10,7 @@ namespace piSensorNet.Logic.TriggerSourceHandlers.Base
 {
     public class TriggerSourceHandlerHelperContext : TriggerSourceHandlerContext
     {
-        public TriggerSourceHandlerHelperContext(PiSensorNetDbContext databaseContext, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
+        public TriggerSourceHandlerHelperContext(PiSensorNetDbContext databaseContext, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, DateTime triggerDateTime)
             : base(databaseContext)
         {
             TriggerSourceHandlers = triggerSourceHandlers;
@@ -21,5 +21,7 @@ namespace piSensorNet.Logic.TriggerSourceHandlers.Base
         public IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> TriggerSourceHandlers { get; set; }
         public IReadOnlyDictionary<int, TriggerDelegate> TriggerDelegates { get; set; }
         public IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> TriggerDependencyHandlers { get; set; }
+
+        public DateTime TriggerDateTime { get; set; }
     }
 }

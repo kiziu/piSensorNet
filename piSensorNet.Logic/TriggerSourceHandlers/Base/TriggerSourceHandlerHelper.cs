@@ -15,7 +15,7 @@ namespace piSensorNet.Logic.TriggerSourceHandlers.Base
             var triggerSourceHandler = context.TriggerSourceHandlers[triggerSource.Type];
             var method = context.TriggerDelegates[triggerSource.TriggerID];
             
-            var methodContext = new TriggerDelegateContext();
+            var methodContext = new TriggerDelegateContext(context.TriggerDateTime);
 
             foreach (var triggerDependency in trigger.TriggerDependencies)
             {

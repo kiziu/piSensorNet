@@ -249,7 +249,7 @@ namespace piSensorNet.Engine
                 var functionHandler = functionHandlers[packet.Function.FunctionType];
                 var taskQueue = new Queue<Action<IMainHubEngine>>();
 
-                functionHandler.Handle(new FunctionHandlerContext(moduleConfiguration, context, queryableFunctionHandlers, functionTypes, functionNames, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers), packet, ref taskQueue);
+                functionHandler.Handle(new FunctionHandlerContext(moduleConfiguration, context, queryableFunctionHandlers, functionTypes, functionNames, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers, DateTime.Now), packet, ref taskQueue);
 
                 context.SaveChanges();
             }
@@ -584,7 +584,7 @@ namespace piSensorNet.Engine
             if (packets.Count == 0)
                 return false;
 
-            var handlerContext = new FunctionHandlerContext(moduleConfiguration, context, queryableFunctionHandlers, functionTypes, functionNames, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers);
+            var handlerContext = new FunctionHandlerContext(moduleConfiguration, context, queryableFunctionHandlers, functionTypes, functionNames, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers, DateTime.Now);
 
             var handleAgain = false;
             var newMesagesAdded = false;
@@ -685,7 +685,7 @@ namespace piSensorNet.Engine
 
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {
-                var handlerContext = new TriggerSourceHandlerHelperContext(context, triggerHandlers, triggerDelegates, triggerDependencyHandlers);
+                var handlerContext = new TriggerSourceHandlerHelperContext(context, triggerHandlers, triggerDelegates, triggerDependencyHandlers, DateTime.Now);
 
                 while (absoluteTimeTriggers.Count > 0)
                 {

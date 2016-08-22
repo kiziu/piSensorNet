@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using piSensorNet.Common;
 using piSensorNet.Common.Custom.Interfaces;
@@ -11,8 +12,8 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
 {
     public class FunctionHandlerContext : TriggerSourceHandlerHelperContext
     {
-        public FunctionHandlerContext(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext databaseContext, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
-            : base(databaseContext, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers)
+        public FunctionHandlerContext(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext databaseContext, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, DateTime triggerDateTime)
+            : base(databaseContext, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers, triggerDateTime)
         {
             ModuleConfiguration = moduleConfiguration;
             QueryableFunctionHandlers = queryableFunctionHandlers;
@@ -29,5 +30,6 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
         protected new IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> TriggerSourceHandlers { get; set; }
         protected new IReadOnlyDictionary<int, TriggerDelegate> TriggerDelegates { get; set; }
         protected new IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> TriggerDependencyHandlers { get; set; }
+        protected new DateTime TriggerDateTime { get; set; }
     }
 }

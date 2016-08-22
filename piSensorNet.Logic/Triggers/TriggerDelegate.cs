@@ -8,7 +8,14 @@ namespace piSensorNet.Logic.Triggers
 
     public sealed class TriggerDelegateContext
     {
+        public TriggerDelegateContext(DateTime now)
+        {
+            Now = now;
+        }
+
+        public DateTime Now { get; }
+
         public IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByAddress { get; internal set; }
-        public IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByFriendlyName{ get; internal set; }
+        public IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByFriendlyName { get; internal set; }
     }
 }
