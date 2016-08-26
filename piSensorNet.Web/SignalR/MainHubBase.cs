@@ -7,14 +7,14 @@ using Microsoft.AspNet.SignalR.Hubs;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Web.SignalR.Interfaces;
 
+using static piSensorNet.Common.Helpers.LoggingHelper;
+
 namespace piSensorNet.Web.SignalR
 {
     public partial class MainHub : Hub<IUser>
     {
         private static readonly string EngineQueryStringKey = Startup.Configuration["Settings:SignalREngineFlagName"];
         private static readonly string EngineQueryStringValue = true.ToString().ToLowerInvariant();
-
-        private static string Now => DateTime.Now.ToString("O");
 
         public static string EngineClientConnectionID { get; private set; }
 
@@ -23,12 +23,12 @@ namespace piSensorNet.Web.SignalR
 
         [CanBeNull]
         public IEngine Engine => EngineClientConnectionID?.For(Clients.Client);
-        
+
         public override Task OnDisconnected(bool stopCalled)
         {
             TryIdentifyEngine(Context, true);
 
-            Console.WriteLine($"{Now}: Disconnected, ID {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}");
+            ToConsole($"Disconnected, ID {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}");
 
             return base.OnDisconnected(stopCalled);
         }
@@ -36,8 +36,8 @@ namespace piSensorNet.Web.SignalR
         public override Task OnConnected()
         {
             TryIdentifyEngine(Context);
-            
-            Console.WriteLine($"{Now}: Connected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine": "")}, transport: {Context.QueryString["transport"]}, ip: {Context.Request.HttpContext.Connection.RemoteIpAddress}");
+
+            ToConsole($"Connected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}, transport: {Context.QueryString["transport"]}, ip: {Context.Request.HttpContext.Connection.RemoteIpAddress}");
 
             return base.OnConnected();
         }
@@ -46,7 +46,7 @@ namespace piSensorNet.Web.SignalR
         {
             TryIdentifyEngine(Context);
 
-            Console.WriteLine($"{Now}: Reconnected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}, transport: {Context.QueryString["transport"]}, ip: {Context.Request.HttpContext.Connection.RemoteIpAddress}");
+            ToConsole($"Reconnected, ID: {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}, transport: {Context.QueryString["transport"]}, ip: {Context.Request.HttpContext.Connection.RemoteIpAddress}");
 
             return base.OnReconnected();
         }
@@ -60,7 +60,7 @@ namespace piSensorNet.Web.SignalR
         {
             return String.Equals(EngineClientConnectionID, context.ConnectionId);
         }
-        
+
         // ReSharper disable once UnusedMethodReturnValue.Local
         private static bool TryIdentifyEngine(HubCallerContext context, bool disconnect = false)
         {

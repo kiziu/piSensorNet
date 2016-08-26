@@ -26,6 +26,8 @@ using piSensorNet.Logic.TriggerSourceHandlers.Base;
 using Module = piSensorNet.DataModel.Entities.Module;
 using Timer = System.Timers.Timer;
 
+using static piSensorNet.Common.Helpers.LoggingHelper;
+
 [assembly: InternalsVisibleTo("piSensorNet.Tests")]
 
 namespace piSensorNet.Engine
@@ -56,8 +58,6 @@ namespace piSensorNet.Engine
         private static volatile bool _pollPartialPackets;
         private static volatile bool _pollPackets;
 
-        private static readonly Action<string> Logger = i => Console.WriteLine($"{DateTime.Now.ToString("O")}: {i}");
-
         // ReSharper disable InconsistentNaming
         private static IReadOnlyMap<string, int> ModuleAddresses;
         private static IReadOnlyMap<FunctionTypeEnum, int> FunctionTypes;
@@ -74,7 +74,7 @@ namespace piSensorNet.Engine
 
         public static int Main(string[] args)
         {
-            Logger("Main: Initializing Engine...");
+            ToConsole("Main: Initializing Engine...");
 
             var recreate = args.Any(i => String.Equals(i, "recreate", StringComparison.InvariantCultureIgnoreCase));
             var recreateOnly = args.Any(i => String.Equals(i, "recreateOnly", StringComparison.InvariantCultureIgnoreCase));
@@ -85,7 +85,7 @@ namespace piSensorNet.Engine
 
             int? serialProcessID = null;
             if (!standalone)
-                serialProcessID = FindSerialProcessID(Configuration, Logger);
+                serialProcessID = FindSerialProcessID(Configuration, ToConsole);
 
             var recreateDatabase = (recreate || recreateOnly) && !validateModel;
 
@@ -97,26 +97,26 @@ namespace piSensorNet.Engine
             {
                 PiSensorNetDbContext.CheckCompatibility(ModuleConfiguration.ConnectionString);
 
-                Logger("Main: Model validation finished, exiting!");
+                ToConsole("Main: Model validation finished, exiting!");
 
                 return 0;
             }
 
             if (recreateOnly)
             {
-                Logger("Main: Database recreated, exiting!");
+                ToConsole("Main: Database recreated, exiting!");
 
                 return 0;
             }
 
             if (!recreate && !standalone && args.Length > 0)
             {
-                Logger($"Main: ERROR: Wrong arguments given: '{args.Join(" ")}'.");
+                ToConsole($"Main: ERROR: Wrong arguments given: '{args.Join(" ")}'.");
 
                 return 1;
             }
 
-            Logger("Main: Context initialized!");
+            ToConsole("Main: Context initialized!");
 
             BuildCache();
 
@@ -124,7 +124,7 @@ namespace piSensorNet.Engine
             //return 666;
 
             DisposalQueue toDispose;
-            var hubProxy = InitializeHubConnection(Configuration, ModuleConfiguration, InternalHandleMessage, ModuleAddresses, FunctionTypes, serialProcessID, out toDispose, Logger);
+            var hubProxy = InitializeHubConnection(Configuration, ModuleConfiguration, InternalHandleMessage, ModuleAddresses, FunctionTypes, serialProcessID, out toDispose, ToConsole);
 
             toDispose += Signal.Handle(SignalHandlers);
 
@@ -133,7 +133,7 @@ namespace piSensorNet.Engine
 
             timer.Start();
 
-            Logger("Main: Started!");
+            ToConsole("Main: Started!");
 
             while (!_doQuit)
             {
@@ -165,26 +165,26 @@ namespace piSensorNet.Engine
 
                     using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
                     {
-                        _pollPackets = MergePackets(context, ModuleConfiguration, FunctionTypes, FunctionNames, ModuleAddresses, CacheModuleAddresses, Logger);
+                        _pollPackets = MergePackets(context, ModuleConfiguration, FunctionTypes, FunctionNames, ModuleAddresses, CacheModuleAddresses, ToConsole);
 
                         if (_pollPackets)
                         {
                             _pollPackets = false;
 
-                            while (HandlePackets(context, ModuleConfiguration, FunctionTypes, FunctionNames, FunctionHandlers, QueryableFunctionHandlers, TriggerSourceHandlers, TriggerDelegates, TriggerDependencyHandlers, serialProcessID, hubProxy, Logger)) {}
+                            while (HandlePackets(context, ModuleConfiguration, FunctionTypes, FunctionNames, FunctionHandlers, QueryableFunctionHandlers, TriggerSourceHandlers, TriggerDelegates, TriggerDependencyHandlers, serialProcessID, hubProxy, ToConsole)) {}
                         }
                     }
                 }
 
-                HandleAbsoluteTimeTriggers(ModuleConfiguration, TriggerSourceHandlers, TriggerDelegates, AbsoluteTimeTriggers, Logger, TriggerDependencyHandlers);
+                HandleAbsoluteTimeTriggers(ModuleConfiguration, TriggerSourceHandlers, TriggerDelegates, AbsoluteTimeTriggers, ToConsole, TriggerDependencyHandlers);
             }
 
-            Logger("Main: Stopping...");
+            ToConsole("Main: Stopping...");
 
             timer.Stop();
             toDispose.Dispose();
 
-            Logger("Main: Stopped!");
+            ToConsole("Main: Stopped!");
 
             return 0;
         }
@@ -211,7 +211,7 @@ namespace piSensorNet.Engine
                 TriggerDependencyHandlers = CacheTriggerDependencyHandlers();
             }
 
-            Logger("BuildCache: Cache built!");
+            ToConsole("BuildCache: Cache built!");
         }
 
         // ReSharper disable once UnusedMember.Local
@@ -734,7 +734,7 @@ namespace piSensorNet.Engine
 
         private static void QuitSignalHandler(SignalTypeEnum signalType)
         {
-            Logger($"Received quit signal as '{signalType}'!");
+            ToConsole($"Received quit signal as '{signalType}'!");
 
             _doQuit = true;
             WaitHandle.Set();
@@ -742,7 +742,7 @@ namespace piSensorNet.Engine
 
         private static void NewPartialPacketsToMergeSignalHandler(SignalTypeEnum signalType)
         {
-            Logger("Received signal to process new message!");
+            ToConsole("Received signal to process new message!");
 
             _pollPartialPackets = true;
             WaitHandle.Set();
@@ -750,7 +750,7 @@ namespace piSensorNet.Engine
 
         private static void RedoCacheSignalHandler(SignalTypeEnum signalType)
         {
-            Logger("Received signal to redo cache!");
+            ToConsole("Received signal to redo cache!");
 
             BuildCache();
         }

@@ -16,6 +16,8 @@ using piSensorNet.DataModel.Entities;
 using piSensorNet.WiringPi.Managed;
 using piSensorNet.WiringPi.Managed.Enums;
 
+using static piSensorNet.Common.Helpers.LoggingHelper;
+
 [assembly: InternalsVisibleTo("piSensorNet.Tests")]
 
 namespace piSensorNet.Serial
@@ -46,20 +48,18 @@ namespace piSensorNet.Serial
         private static volatile bool _doQuit;
         private static volatile bool _pollMessagesToSend;
 
-        private static readonly Action<string> Logger = i => Console.WriteLine($"{DateTime.Now.ToString("O")}: {i}");
-
         public static int Main(string[] args)
         {
-            Logger("Main: Initializing Serial Monitor..");
+            ToConsole("Main: Initializing Serial Monitor..");
 
             var toDispose = new DisposalQueue();
-            var engineProcessID = FindSerialProcessID(Configuration, Logger);
+            var engineProcessID = FindSerialProcessID(Configuration, ToConsole);
 
             PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString);
 
             //PiSensorNetDbContext.Logger = Console.Write;
 
-            Logger("Main: Context initialized!");
+            ToConsole("Main: Context initialized!");
 
             toDispose += Signal.Handle(SignalHandlers);
 
@@ -69,7 +69,7 @@ namespace piSensorNet.Serial
 
             toDispose += Pi.Interrupts.SetupPolled(BroadcomPinNumberEnum.Gpio18, InterruptModeEnum.FallingEdge, SerialInterruptHandler);
 
-            Logger("Main: Started!");
+            ToConsole("Main: Started!");
 
             while (!_doQuit)
             {
@@ -78,7 +78,7 @@ namespace piSensorNet.Serial
                 if (_readSerial > 0)
                 {
                     --_readSerial;
-                    if (ReadSerial(ReceivedMessages, Buffer, Logger))
+                    if (ReadSerial(ReceivedMessages, Buffer, ToConsole))
                     {
                         ++_readSerial;
                         continue;
@@ -88,18 +88,18 @@ namespace piSensorNet.Serial
                         continue;
                 }
 
-                HandleReceivedMessages(engineProcessID, ReceivedMessages, ModuleConfiguration, Logger);
+                HandleReceivedMessages(engineProcessID, ReceivedMessages, ModuleConfiguration, ToConsole);
 
                 if (_pollMessagesToSend)
                 {
                     _pollMessagesToSend = false;
-                    PollMessagesToSend(MessagesToSend, ModuleConfiguration, Logger);
+                    PollMessagesToSend(MessagesToSend, ModuleConfiguration, ToConsole);
                 }
 
-                _lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, ModuleConfiguration, MessageBuilder, Logger);
+                _lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, ModuleConfiguration, MessageBuilder, ToConsole);
             }
 
-            Logger("Main: Stopping...");
+            ToConsole("Main: Stopping...");
             
             toDispose.Dispose();
 
@@ -108,7 +108,7 @@ namespace piSensorNet.Serial
             Pi.Serial.Flush();
             Pi.Serial.Close();
 
-            Logger("Main: Stopped!");
+            ToConsole("Main: Stopped!");
 
             return 0;
         }
@@ -328,7 +328,7 @@ namespace piSensorNet.Serial
 
         private static void SerialInterruptHandler()
         {
-            Logger("Received Serial Interrupt!");
+            ToConsole("Received Serial Interrupt!");
 
             ++_readSerial;
             WaitHandle.Set();
@@ -336,7 +336,7 @@ namespace piSensorNet.Serial
 
         private static void QuitSignalHandler(SignalTypeEnum signalType)
         {
-            Logger($"Received quit signal as '{signalType}'!");
+            ToConsole($"Received quit signal as '{signalType}'!");
 
             _doQuit = true;
             WaitHandle.Set();
@@ -344,7 +344,7 @@ namespace piSensorNet.Serial
 
         private static void NeMessageToSendSignalHandler(SignalTypeEnum signalType)
         {
-            Logger("Received new message signal!");
+            ToConsole("Received new message signal!");
 
             _pollMessagesToSend = true;
             WaitHandle.Set();

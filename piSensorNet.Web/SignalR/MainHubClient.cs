@@ -4,27 +4,29 @@ using System.Linq;
 using piSensorNet.Common.Enums;
 using piSensorNet.Logic;
 
+using static piSensorNet.Common.Helpers.LoggingHelper;
+
 namespace piSensorNet.Web.SignalR
 {
     public partial class MainHub : IMainHubClient
     {
         public void Identify(int? moduleID)
         {
-            Console.WriteLine($"{Now}: {nameof(Identify)}({moduleID?.ToString() ?? "<null>"}) ${Context.ConnectionId}");
+            ToConsole($"{nameof(Identify)}({moduleID?.ToString() ?? "<null>"}) ${Context.ConnectionId}");
 
             Engine?.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.Identify);
         }
 
         public void ReadTemperature(int? moduleID)
         {
-            Console.WriteLine($"{Now}: {nameof(ReadTemperature)}({moduleID?.ToString() ?? "<null>"}) ${Context.ConnectionId}");
+            ToConsole($"{nameof(ReadTemperature)}({moduleID?.ToString() ?? "<null>"}) ${Context.ConnectionId}");
 
             Engine?.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.OwDS18B20Temperature);
         }
 
         public void SetTemperatureReportPeriod(int moduleID, TimeSpan period)
         {
-            Console.WriteLine($"{Now}: {nameof(SetTemperatureReportPeriod)}({moduleID}, {period}) ${Context.ConnectionId}");
+            ToConsole($"{nameof(SetTemperatureReportPeriod)}({moduleID}, {period}) ${Context.ConnectionId}");
 
             var value = (int)(period.TotalMilliseconds / 100);
 

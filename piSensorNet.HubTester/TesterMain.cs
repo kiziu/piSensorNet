@@ -9,6 +9,8 @@ using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.JsonConverters;
 
+using static piSensorNet.Common.Helpers.LoggingHelper;
+
 namespace piSensorNet.HubTester
 {
     public delegate void UserFunctionDelegate(IReadOnlyDictionary<string, int> modules);
@@ -16,15 +18,13 @@ namespace piSensorNet.HubTester
     public static class TesterMain
     {
         private static IConfiguration Configuration { get; } = Common.Configuration.Load();
-
-        private static readonly Action<string> Logger = i => Console.WriteLine($"{DateTime.Now.ToString("O")}: {i}");
-
+        
         public static int Main(string[] args)
         {
             DisposalQueue toDispose;
-            var hubProxy = InitializeHubConnection(Configuration, InternalHandleMessage, out toDispose, Logger);
+            var hubProxy = InitializeHubConnection(Configuration, InternalHandleMessage, out toDispose, ToConsole);
 
-            Logger("Main: Started!");
+            ToConsole("Main: Started!");
 
             while (true)
             {
@@ -35,7 +35,7 @@ namespace piSensorNet.HubTester
 
                 if (hubProxy == null)
                 {
-                    Logger("Not connected to hub...");
+                    ToConsole("Not connected to hub...");
                     continue;
                 }
 
@@ -84,14 +84,14 @@ namespace piSensorNet.HubTester
                                 break;
 
                             default:
-                                Logger($"Error: Type '{item[0]}' is not recognized!");
+                                ToConsole($"Error: Type '{item[0]}' is not recognized!");
                                 goto NEXT;
                         }
 
                     typedArguments[i] = typedArgument;
                 }
 
-                Logger($"=> {method}({typedArguments.Select(i => i?.ToString() ?? "<null>").Join(", ")})");
+                ToConsole($"=> {method}({typedArguments.Select(i => i?.ToString() ?? "<null>").Join(", ")})");
                 hubProxy.SafeInvoke(method, typedArguments);
 
             NEXT:
@@ -101,7 +101,7 @@ namespace piSensorNet.HubTester
 
             toDispose?.Dispose();
 
-            Logger("Main: Stopped!");
+            ToConsole("Main: Stopped!");
 
             return 0;
         }

@@ -3,10 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNet.SignalR.Client;
 using Microsoft.AspNet.SignalR.Client.Hubs;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using piSensorNet.Common;
 using piSensorNet.Common.Extensions;
+using piSensorNet.Common.Helpers;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace piSensorNet.Tests
 {
@@ -23,7 +24,7 @@ namespace piSensorNet.Tests
         public static readonly IConfiguration Configuration = piSensorNet.Common.Configuration.Load("config.json");
         public static readonly ITestsConfiguration TestsConfiguration = new _TestsConfiguration(Configuration);
 
-        public static readonly Action<string> ConsoleLogger = i => Console.WriteLine($"{DateTime.Now.ToString("O")}: {i}");
+        public static readonly Action<string> ConsoleLogger = LoggingHelper.ToConsole;
         public static readonly Action<string> EmptyLogger = i => { };
 
         internal sealed class _TestsConfiguration : ModuleConfiguration, ITestsConfiguration

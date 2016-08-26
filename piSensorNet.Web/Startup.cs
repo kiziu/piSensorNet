@@ -19,22 +19,22 @@ using piSensorNet.Web.Controllers;
 using IConfiguration = piSensorNet.Common.IConfiguration;
 using Module = piSensorNet.DataModel.Entities.Module;
 
+using static piSensorNet.Common.Helpers.LoggingHelper;
+
 namespace piSensorNet.Web
 {
     public class Startup
     {
-        private static string Now => DateTime.Now.ToString("O");
-
         public static IConfiguration Configuration { get; } = Common.Configuration.Load("config.json");
         private static string ConnectionString => Configuration["Settings:ConnectionString"];
 
         public Startup()
         {
-            Console.WriteLine($"{Now}: Starting...");
+            ToConsole("Starting...");
 
             PiSensorNetDbContext.Initialize(ConnectionString);
 
-            Console.WriteLine($"{Now}: Context initialized!");
+            ToConsole("Context initialized!");
 
             var debugProfile = Environment.GetEnvironmentVariable("DEBUG_PROFILE");
             if (debugProfile != null)
@@ -48,6 +48,7 @@ namespace piSensorNet.Web
             }
         }
 
+        [Obsolete]
         private static void LoadDemoData(string connectionString)
         {
             using (var context = PiSensorNetDbContext.Connect(connectionString).WithAutoSave())

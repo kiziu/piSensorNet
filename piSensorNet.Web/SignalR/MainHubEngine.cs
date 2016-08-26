@@ -5,13 +5,15 @@ using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Logic;
 
+using static piSensorNet.Common.Helpers.LoggingHelper;
+
 namespace piSensorNet.Web.SignalR
 {
     public partial class MainHub : IMainHubEngine
     {
         public void Error(string clientID, string message)
         {
-            Console.WriteLine($"{Now}: {nameof(Error)}({clientID}, {message})");
+            ToConsole($"{nameof(Error)}({clientID}, {message})");
 
             if (!IsEngine())
                 return;
@@ -21,7 +23,7 @@ namespace piSensorNet.Web.SignalR
 
         public void NewModuleFunctions(int moduleID, IReadOnlyCollection<KeyValuePair<FunctionTypeEnum, string>> functions)
         {
-            Console.WriteLine($"{Now}: {nameof(NewModuleFunctions)}({moduleID}, [{functions.Select(i => i.ToString()).Join(", ")}])");
+            ToConsole($"{nameof(NewModuleFunctions)}({moduleID}, [{functions.Select(i => i.ToString()).Join(", ")}])");
             if (!IsEngine())
                 return;
 
@@ -30,7 +32,7 @@ namespace piSensorNet.Web.SignalR
 
         public void NewModule(int moduleID, string moduleAddress)
         {
-            Console.WriteLine($"{Now}: {nameof(NewModule)}({moduleID}, {moduleAddress})");
+            ToConsole($"{nameof(NewModule)}({moduleID}, {moduleAddress})");
             if (!IsEngine())
                 return;
 
@@ -39,7 +41,7 @@ namespace piSensorNet.Web.SignalR
 
         public void NewTemperatureReading(int moduleID, int sensorID, decimal value, DateTime created, DateTime received)
         {
-            Console.WriteLine($"{Now}: {nameof(NewTemperatureReading)}({moduleID}, {sensorID}, {value}, {created}, {received})");
+            ToConsole($"{nameof(NewTemperatureReading)}({moduleID}, {sensorID}, {value}, {created}, {received})");
             if (!IsEngine())
                 return;
 
@@ -48,7 +50,7 @@ namespace piSensorNet.Web.SignalR
 
         public void NewTemperatureSensor(int moduleID, int sensorID, string sensorAddress)
         {
-            Console.WriteLine($"{Now}: {nameof(NewTemperatureSensor)}({moduleID}, {sensorID}, {sensorAddress})");
+            ToConsole($"{nameof(NewTemperatureSensor)}({moduleID}, {sensorID}, {sensorAddress})");
             if (!IsEngine())
                 return;
 
@@ -57,7 +59,7 @@ namespace piSensorNet.Web.SignalR
 
         public void ChangedTemperatureSensorPeriod(int moduleID, TimeSpan period)
         {
-            Console.WriteLine($"{Now}: {nameof(ChangedTemperatureSensorPeriod)}({moduleID}, {period})");
+            ToConsole($"{nameof(ChangedTemperatureSensorPeriod)}({moduleID}, {period})");
             if (!IsEngine())
                 return;
 
@@ -66,7 +68,7 @@ namespace piSensorNet.Web.SignalR
 
         public void NewOneWireDevices(int moduleID, IReadOnlyDictionary<int, string> devices)
         {
-            Console.WriteLine($"{Now}: {nameof(NewOneWireDevices)}({moduleID}, {{{devices.Select(i => $"{i.Key}: {i.Value}").Join(", ")}}})");
+            ToConsole($"{nameof(NewOneWireDevices)}({moduleID}, {{{devices.Select(i => $"{i.Key}: {i.Value}").Join(", ")}}})");
             if (!IsEngine())
                 return;
 
@@ -75,7 +77,7 @@ namespace piSensorNet.Web.SignalR
 
         public void NewVoltageReading(int moduleID, decimal value, DateTime created, DateTime received)
         {
-            Console.WriteLine($"{Now}: {nameof(NewVoltageReading)}({moduleID}, {value}, {created}, {received})");
+            ToConsole($"{nameof(NewVoltageReading)}({moduleID}, {value}, {created}, {received})");
             if (!IsEngine())
                 return;
 
