@@ -18,6 +18,7 @@ namespace piSensorNet.Common
         {
             var builder = new ConfigurationBuilder()
                 .AddJsonFile("globalConfig.json", true) // windows
+                .AddJsonFile(@"..\..\..\..\..\globalConfig.json", true) // windows
                 .AddJsonFile("../globalConfig.json", true); // linux
 
             foreach (var configFile in configFiles)

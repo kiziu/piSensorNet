@@ -16,6 +16,8 @@ namespace piSensorNet.Logic.TriggerSourceHandlers.Base
             TriggerSourceHandlers = triggerSourceHandlers;
             TriggerDelegates = triggerDelegates;
             TriggerDependencyHandlers = triggerDependencyHandlers;
+
+            TriggerDateTime = triggerDateTime;
         }
 
         public IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> TriggerSourceHandlers { get; set; }

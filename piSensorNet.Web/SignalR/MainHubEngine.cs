@@ -21,7 +21,7 @@ namespace piSensorNet.Web.SignalR
 
         public void NewModuleFunctions(int moduleID, IReadOnlyCollection<KeyValuePair<FunctionTypeEnum, string>> functions)
         {
-            Console.WriteLine($"{Now}: {nameof(NewModuleFunctions)}({moduleID}, [{functions.Select(i => i.ToString()).Join(", ")}]");
+            Console.WriteLine($"{Now}: {nameof(NewModuleFunctions)}({moduleID}, [{functions.Select(i => i.ToString()).Join(", ")}])");
             if (!IsEngine())
                 return;
 

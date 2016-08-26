@@ -28,9 +28,7 @@ namespace piSensorNet.Common.JsonConverters
             return member.GetValue(null);
         }
 
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType.IsEnum;
-        }
+        public override bool CanConvert(Type objectType) 
+            => objectType.IsEnum;
     }
 }

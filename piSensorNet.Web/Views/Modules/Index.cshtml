@@ -7,75 +7,62 @@
 
 @section BodyScripts
 {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 
     <script type="text/javascript">
         piSensorNet.Net.on('NewModule',
-            function(iModuleID, sModuleAddress) {
+            function (iModuleID, sModuleAddress) {
                 console.log('OnNewModule: ' + iModuleID + ', ' + sModuleAddress);
 
                 $('table#modulesTable').DataTable().ajax.reload();
             });
 
         $(document)
-            .ready(function() {
+            .ready(function () {
+                @* ReSharper disable once UnusedLocals *@
+                var editFunctionHandler = function (settings, rowIndex, columnIndex, data) {
+                    var url = '@(Url.Action("Edit", "Modules", "Manage"))/' + data['@(nameof(ModuleListItemModel.ID))'];
+                    var title = 'Edit module @@' + data['@(nameof(ModuleListItemModel.Address))'];
 
-                $('table#modulesTable')
-                    .dataTable({
-                        'title': 'Modules',
-                        'ajax': {
-                            'url': '@(Url.Action("List"))',
-                            'contentType': 'application/json',
-                            'dataType ': 'json',
-                            'data': function(oData, oAjaxSettings) {
-                                return JSON.stringify(oData);
-                            }
-                        },
-                        'searching': false,
-                        'paging': false,
+                    piSensorNet.Dialog.editor(url, title,
+                        () => settings.oInstance.api().ajax.reload());
+                }
 
-                        'columns': [
-                            { 'data': 'ID', 'type': 'num', 'visible': false },
-                            { 'data': 'Address', 'type': 'string' },
-                            { 'data': 'FriendlyName', 'type': 'string' },
-                            {
-                                'data': 'State',
-                                'type': 'string',
-                                'render': piSensorNet.DataTables.enumLocalizer('@(Html.ResourcePrefix<Enums, ModuleStateEnum>())')
-                            },
-                            {
-                                'data': 'Created',
-                                'type': 'date',
-                                'render': piSensorNet.DataTables.dateFormatter()
-                            },
-                            piSensorNet.DataTables.actions({
-                                'edit': {
-                                    'title': 'Edit',
-                                    'text': $('<span />').addClass('fa').addClass('fa-pencil-square-o'),
-                                    'handler': function(settings, rowIndex, columnIndex, data) {
-                                        var url = '@(Url.Action("Edit", "Modules", "Manage"))/' +
-                                            data['@(nameof(ModuleListItemModel.ID))'];
-                                        var title = 'Edit module @@' + data['@(nameof(ModuleListItemModel.Address))'];
+                @* ReSharper disable once UnusedLocals *@
+                var identifyFunctionHandler = function (settings, rowIndex, columnIndex, data) {
+                    var id = rowIndex >= 0 ? data['@(nameof(ModuleListItemModel.ID))'] : null;
 
-                                        piSensorNet.Dialog.editor(url, title,
-                                            function() {
-                                                settings.oInstance.api().ajax.reload();
-                                            });
-                                    }
-                                },
-                                'identify': {
-                                    'title': 'Identify',
-                                    'text': $('<span />').addClass('fa').addClass('fa-hand-spock-o'),
-                                    'handler': function(settings, rowIndex, columnIndex, data) {
-                                        var id = data && data['@(nameof(ModuleListItemModel.ID))'];
+                    piSensorNet.Net.call('@(nameof(IMainHubClient.Identify))', [id]);
+                }
 
-                                        piSensorNet.Net.call('@(nameof(IMainHubClient.Identify))', [id]);
-                                    }
-                                }
-                            })
-                        ],
-                        'sorting': [[1, 'asc']]
-                    });
+                @(Html.DataTable<ModuleListItemModel>("modulesTable")
+                      .Indent(4)
+                      .AjaxSource("List")
+                      .Title("Modules")
+                      .Columns(c =>
+                               {
+                                   c.For(i => i.ID).Visible(false);
+                                   c.For(i => i.Address);
+                                   c.For(i => i.FriendlyName);
+                                   c.For(i => i.State).Localize(() => DataTable.piSensorNet["DataTables"]["enumLocalizer"].Invoke(Html.ResourcePrefix<Enums, ModuleStateEnum>()));
+                                   c.For(i => i.Created).Format(() => DataTable.piSensorNet["DataTables"]["dateFormatter"].Invoke());
+                                   c.Actions(a =>
+                                             {
+                                                 a.Name("identify")
+                                                  .Visible((settings, rowIndex, columnIndex, data) =>
+                                                      (rowIndex >= 0 && data.State.Value() == ModuleStateEnum.New)
+                                                      || (rowIndex == -1 && data.AsArray().Length > 0))
+                                                  .Title((settings, rowIndex, columnIndex, data) => "Identify " + data.Address)
+                                                  .Icon("fa-hand-spock-o")
+                                                  .Handler("identifyFunctionHandler");
+
+                                                 a.Name("edit")
+                                                  .Title((settings, rowIndex, columnIndex, data) => "Edit " + data.Address)
+                                                  .Icon("fa-pencil-square-o")
+                                                  .Handler("editFunctionHandler");
+                                             });
+                               })
+                      .DefaultSorting(i => i.Address, SortingDirectionEnum.Ascending))
             });
     </script>
 }
@@ -83,21 +70,23 @@
 <div class="row">
     <table id="modulesTable">
         <thead>
-            <tr>
-                <th>ID</th>
-                <th>Address</th>
-                <th>Friendly Name</th>
-                <th>State</th>
-                <th>Created</th>
-                <th></th>
-            </tr>
+        <tr>
+            <th>ID</th>
+            <th>Address</th>
+            <th>Friendly Name</th>
+            <th>State</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
         </thead>
         <tbody></tbody>
         <tfoot>
-            <tr>
-                <th colspan="5"></th>
-                <th><a data-action="identify" data-action-text="true" title="Identify All"></a></th>
-            </tr>
+        <tr>
+            <th colspan="5"></th>
+            <th>
+                <a data-action="identify" data-action-text="true" title="Identify All"></a>
+            </th>
+        </tr>
         </tfoot>
     </table>
 </div>

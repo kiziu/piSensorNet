@@ -40,6 +40,8 @@ namespace piSensorNet.Tests
 
     internal sealed class ConsoleHubProxy : IHubProxy
     {
+        private const string Null = "<null>";
+
         private delegate void Echo(string pattern, params object[] args);
 
         private readonly Echo _echo;
@@ -54,32 +56,36 @@ namespace piSensorNet.Tests
 
         public Task Invoke(string method, params object[] args)
         {
-            return Task.Factory.StartNew(() => _echo("Hub => {0}({1})", method, args.Select(i => i.ToString()).Join(", ")));
+            return Task.Factory.StartNew(
+                () => _echo("Hub => {0}({1})", method, args.Select(i => i?.ToString() ?? Null).Join(", ")));
         }
 
         public Task<T> Invoke<T>(string method, params object[] args)
         {
-            return Task.Factory.StartNew(() =>
-            {
-                _echo("Hub => {0}({1})", method, method, args.Select(i => i.ToString()).Join(", "));
+            return Task.Factory.StartNew(
+                () =>
+                {
+                    _echo("Hub => {0}({1})", method, method, args.Select(i => i?.ToString() ?? Null).Join(", "));
 
-                return default(T);
-            });
+                    return default(T);
+                });
         }
 
         public Task Invoke<T>(string method, Action<T> onProgress, params object[] args)
         {
-            return Task.Factory.StartNew(() => _echo("Hub => {0}({1}), with progress", method, args.Select(i => i.ToString()).Join(", ")));
+            return Task.Factory.StartNew(
+                () => _echo("Hub => {0}({1}), with progress", method, args.Select(i => i?.ToString() ?? Null).Join(", ")));
         }
 
         public Task<TResult> Invoke<TResult, TProgress>(string method, Action<TProgress> onProgress, params object[] args)
         {
-            return Task.Factory.StartNew(() =>
-            {
-                _echo("Hub => {0}({1}), with progress", method, args.Select(i => i.ToString()).Join(", "));
+            return Task.Factory.StartNew(
+                () =>
+                {
+                    _echo("Hub => {0}({1}), with progress", method, args.Select(i => i?.ToString() ?? Null).Join(", "));
 
-                return default(TResult);
-            });
+                    return default(TResult);
+                });
         }
 
         public Subscription Subscribe(string eventName)

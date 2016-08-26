@@ -25,8 +25,7 @@ namespace piSensorNet.Web.Custom
         [NotNull]
         public static TriggerListItemModel MapToListItem([NotNull] this Trigger o)
         {
-            return new TriggerListItemModel
-                   {};
+            return new TriggerListItemModel();
         }
 
         [NotNull]

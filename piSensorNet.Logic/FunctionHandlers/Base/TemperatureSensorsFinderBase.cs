@@ -13,10 +13,10 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
         protected abstract IReadOnlyCollection<T> GetItems(IModuleConfiguration moduleConfiguration, Packet packet);
         protected abstract Func<T, string> GetAddress { get; }
 
-        protected virtual void ItemCallback(FunctionHandlerContext context, Packet packet, Queue<Action<IMainHubEngine>> hubMessageQueue, T item, TemperatureSensor sensor, bool wasSensorCreated) { }
-        protected virtual void OnHandled(FunctionHandlerContext context, Module module, Queue<Action<IMainHubEngine>> hubMessageQueue, IReadOnlyCollection<TemperatureSensor> newSensors) { }
+        protected virtual void ItemCallback(FunctionHandlerContext context, Packet packet, HubMessageQueue hubMessageQueue, T item, TemperatureSensor sensor, bool wasSensorCreated) { }
+        protected virtual void OnHandled(FunctionHandlerContext context, Module module, HubMessageQueue hubMessageQueue, IReadOnlyCollection<TemperatureSensor> newSensors) { }
 
-        public sealed override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public sealed override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref HubMessageQueue hubMessageQueue)
         {
             var items = GetItems(context.ModuleConfiguration, packet);
             var module = packet.Module;
@@ -45,7 +45,7 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
                     isAdded = true;
                     context.DatabaseContext.SaveChanges();
 
-                    hubMessageQueue.Enqueue(proxy => proxy.NewTemperatureSensor(temperatureSensor.ModuleID, temperatureSensor.ID, temperatureSensor.Address));
+                    hubMessageQueue.Enqueue(i => i.NewTemperatureSensor(temperatureSensor.ModuleID, temperatureSensor.ID, temperatureSensor.Address));
                 }
 
                 ItemCallback(context, packet, hubMessageQueue, item, temperatureSensor, isAdded);

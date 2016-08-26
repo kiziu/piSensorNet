@@ -12,13 +12,13 @@ using piSensorNet.Common.Custom;
 using piSensorNet.Common.Custom.Interfaces;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
+using piSensorNet.Common.JsonConverters;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
 using piSensorNet.DataModel.Enums;
 using piSensorNet.Common.System;
-using piSensorNet.Engine.SignalR;
-using piSensorNet.Logic;
 using piSensorNet.Logic.Compilation;
+using piSensorNet.Logic.Custom;
 using piSensorNet.Logic.FunctionHandlers.Base;
 using piSensorNet.Logic.TriggerDependencyHandlers.Base;
 using piSensorNet.Logic.Triggers;
@@ -247,7 +247,7 @@ namespace piSensorNet.Engine
 
                 // ReSharper disable once PossibleInvalidOperationException
                 var functionHandler = functionHandlers[packet.Function.FunctionType];
-                var taskQueue = new Queue<Action<IMainHubEngine>>();
+                var taskQueue = new HubMessageQueue();
 
                 functionHandler.Handle(new FunctionHandlerContext(moduleConfiguration, context, queryableFunctionHandlers, functionTypes, functionNames, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers, DateTime.Now), packet, ref taskQueue);
 
@@ -276,7 +276,7 @@ namespace piSensorNet.Engine
             return pid.Value;
         }
 
-        private static IMainHubEngine InitializeHubConnection(IConfiguration configuration, IModuleConfiguration moduleConfiguration, MessageHandler handler, IReadOnlyMap<string, int> moduleAddresses, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
+        private static IHubProxy InitializeHubConnection(IConfiguration configuration, IModuleConfiguration moduleConfiguration, MessageHandler handler, IReadOnlyMap<string, int> moduleAddresses, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
         {
             toDispose = new DisposalQueue();
 
@@ -289,6 +289,8 @@ namespace piSensorNet.Engine
                 });
 
             hubConnection.StateChanged += change => logger($"InitializeHubConnection: StateChanged: '{change.OldState}' -> '{change.NewState}'!");
+
+            hubConnection.JsonSerializer.Converters.Add(new NullConverter()); // handle NULLs
 
             var hubProxy = hubConnection.CreateHubProxy(configuration["Settings:SignalRHubName"]);
 
@@ -316,7 +318,7 @@ namespace piSensorNet.Engine
 
             toDispose += hubConnection;
 
-            return new MainHubEngineProxy(hubProxy);
+            return hubProxy;
         }
 
         #endregion
@@ -567,7 +569,7 @@ namespace piSensorNet.Engine
             return packetGroupWithPacket.Count > 0;
         }
 
-        internal static bool HandlePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> functionHandlers, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, int? serialProcessID, IMainHubEngine hubProxy, Action<string> logger)
+        internal static bool HandlePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> functionHandlers, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, int? serialProcessID, IHubProxy hubProxy, Action<string> logger)
         {
             logger("HandlePackets: Start...");
 
@@ -588,7 +590,7 @@ namespace piSensorNet.Engine
 
             var handleAgain = false;
             var newMesagesAdded = false;
-            var hubTasksQueue = new Queue<Action<IMainHubEngine>>();
+            var hubTasksQueue = new HubMessageQueue();
             foreach (var packet in packets)
             {
                 // ReSharper disable once PossibleInvalidOperationException
@@ -635,7 +637,7 @@ namespace piSensorNet.Engine
                 Signal.Send(serialProcessID.Value, SignalTypeEnum.User1);
 
             while (hubTasksQueue.Count > 0)
-                hubTasksQueue.Dequeue()(hubProxy);
+                hubProxy.SafeInvoke(hubTasksQueue.Dequeue());
 
             logger($"HandlePackets: Hub message(s) sent{(newMesagesAdded ? ", Serial signaled about new message(s)" : String.Empty)}{(handleAgain ? ", packet(s) will be handled again" : String.Empty)}!"); // ~10ms
 

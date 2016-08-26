@@ -7,6 +7,7 @@ using piSensorNet.Common;
 using piSensorNet.Common.Custom;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
+using piSensorNet.Common.JsonConverters;
 
 namespace piSensorNet.HubTester
 {
@@ -22,7 +23,7 @@ namespace piSensorNet.HubTester
         {
             DisposalQueue toDispose;
             var hubProxy = InitializeHubConnection(Configuration, InternalHandleMessage, out toDispose, Logger);
-            
+
             Logger("Main: Started!");
 
             while (true)
@@ -31,6 +32,12 @@ namespace piSensorNet.HubTester
 
                 if (String.IsNullOrWhiteSpace(line))
                     break;
+
+                if (hubProxy == null)
+                {
+                    Logger("Not connected to hub...");
+                    continue;
+                }
 
                 var parts = line.Split(new[] {" "}, StringSplitOptions.RemoveEmptyEntries);
 
@@ -48,6 +55,10 @@ namespace piSensorNet.HubTester
                     else
                         switch (item[0])
                         {
+                            case "s":
+                                typedArgument = item[1].TrimToNull();
+                                break;
+
                             case "i":
                                 typedArgument = int.Parse(item[1]);
                                 break;
@@ -80,8 +91,8 @@ namespace piSensorNet.HubTester
                     typedArguments[i] = typedArgument;
                 }
 
-                Logger($"=> {method}({arguments.Join(", ")})");
-                hubProxy.Invoke(method, typedArguments);
+                Logger($"=> {method}({typedArguments.Select(i => i?.ToString() ?? "<null>").Join(", ")})");
+                hubProxy.SafeInvoke(method, typedArguments);
 
             NEXT:
                 ;
@@ -109,6 +120,8 @@ namespace piSensorNet.HubTester
 
             hubConnection.StateChanged += change => logger($"InitializeHubConnection: StateChanged: '{change.OldState}' -> '{change.NewState}'!");
 
+            hubConnection.JsonSerializer.Converters.Add(new NullConverter()); // handle NULLs
+
             var hubProxy = hubConnection.CreateHubProxy(configuration["Settings:SignalRHubName"]);
 
             toDispose.Enqueue(hubProxy.On<string, int?, FunctionTypeEnum, string>("sendMessage",
@@ -125,7 +138,12 @@ namespace piSensorNet.HubTester
             }
             catch (Exception e)
             {
-                logger($"InitializeHubConnection: ERROR: Exception occurred while initializing hub connection: {e.Message}.");
+                var message = $"InitializeHubConnection: ERROR:{Environment.NewLine}Exception '{typeof(Exception).Name}' occurred while initializing hub connection: {e.Message}.";
+                if (e.InnerException != null)
+                    message += Environment.NewLine
+                               + $"Inner exception '{e.InnerException.GetType().Name}': {e.InnerException.Message}.";
+
+                logger(message);
 
                 toDispose = null;
                 return null;

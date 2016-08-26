@@ -21,4 +21,10 @@
 
         return array;
     }
+
+    common.createSetterException = function(propertyName) {
+        return function() {
+            throw 'setting the value of ' + propertyName + ' is not permitted';
+        };
+    }
 }(window.common = window.common || {}));

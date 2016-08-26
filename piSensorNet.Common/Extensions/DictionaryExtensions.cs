@@ -54,8 +54,7 @@ namespace piSensorNet.Common.Extensions
             => dictionary;
 
         [NotNull]
-        public static TDictionary AddOrReplace<TKey, TValue, TDictionary>(this TDictionary dictionary, TKey key, TValue value)
-            where TDictionary : IDictionary<TKey, TValue>
+        public static IDictionary<TKey, TValue> AddOrReplace<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
         {
             dictionary[key] = value;
 
@@ -69,6 +68,14 @@ namespace piSensorNet.Common.Extensions
 
             foreach (var entry in toAdd)
                 iDictionary.Add(entry);
+
+            return dictionary;
+        }
+
+        [NotNull]
+        public static IDictionary<TKey, TValue> With<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+        {
+            dictionary.Add(key, value);
 
             return dictionary;
         }

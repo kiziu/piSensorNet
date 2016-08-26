@@ -12,7 +12,7 @@ namespace piSensorNet.Web.Extensions
         [NotNull]
         public static string Action([NotNull] this IUrlHelper helper, [AspMvcAction] string action, [AspMvcController] string controller, [NotNull] string area, [CanBeNull] object routeValues = null) =>
             helper.Action(action, controller,
-                new RouteValueDictionary(routeValues).AddOrReplace("Area", (object)area),
+                new RouteValueDictionary(routeValues).AddOrReplace("Area", area),
                 null, null, null);
     }
 }

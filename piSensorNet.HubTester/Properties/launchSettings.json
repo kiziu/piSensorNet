@@ -1,9 +1,7 @@
 {
     "profiles": {
-        "piSensorNet.Engine": {
-            "commandName": "Project",
-            "commandLineArgs": "standalone"
-            //"commandLineArgs": "recreateOnly"
+        "piSensorNet.HubTester": {
+            "commandName": "Project"
         }
     }
 }

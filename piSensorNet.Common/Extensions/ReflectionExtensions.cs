@@ -29,6 +29,26 @@ namespace piSensorNet.Common.Extensions
             }
         }
 
+        [ContractAnnotation("throwOnWrongMemberType:true => notnull")]
+        [CanBeNull]
+        public static object GetMemberValue([NotNull] this MemberInfo memberInfo, object source, bool throwOnWrongMemberType = true)
+        {
+            switch (memberInfo.MemberType)
+            {
+                case MemberTypes.Field:
+                    return ((FieldInfo)memberInfo).GetValue(source);
+
+                case MemberTypes.Property:
+                    return ((PropertyInfo)memberInfo).GetValue(source);
+
+                default:
+                    if (throwOnWrongMemberType)
+                        throw new ArgumentException("Wrong member type.", nameof(memberInfo));
+
+                    return null;
+            }
+        }
+
         [NotNull]
         public static IReadOnlyCollection<Type> GetImplementations<TBase>()
             where TBase : class

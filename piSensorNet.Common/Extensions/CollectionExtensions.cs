@@ -76,6 +76,7 @@ namespace piSensorNet.Common.Extensions
         }
 
         [CanBeNull]
+        [ContractAnnotation("list:notnull => notnull; list:null => null")]
         public static IReadOnlyCollection<TElement> ReadOnly<TElement>([CanBeNull] this IReadOnlyCollection<TElement> list)
             => list;
 
@@ -85,11 +86,43 @@ namespace piSensorNet.Common.Extensions
 
         [NotNull]
         public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this IReadOnlyCollection<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+            => InternalMapList(source, source.Count, mappingFunction);
+
+        [NotNull]
+        public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this IList<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+            => InternalMapList(source, source.Count, mappingFunction);
+
+        [NotNull]
+        public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this List<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+            => source.ReadOnly().Map(mappingFunction);
+
+        [NotNull]
+        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this IReadOnlyCollection<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+            => InternalMapArray(source, source.Count, mappingFunction);
+
+        [NotNull]
+        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this TSourceElement[] source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+            => InternalMapArray(source, source.Length, mappingFunction);
+
+        [NotNull]
+        private static List<TResultElement> InternalMapList<TSourceElement, TResultElement>([NotNull] IEnumerable<TSourceElement> source, int count, [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
         {
-            var result = new List<TResultElement>(source.Count);
+            var result = new List<TResultElement>(count);
 
             foreach (var item in source)
                 result.Add(mappingFunction(item));
+
+            return result;
+        }
+
+        [NotNull]
+        private static TResultElement[] InternalMapArray<TSourceElement, TResultElement>([NotNull] IEnumerable<TSourceElement> source, int count, [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+        {
+            var result = new TResultElement[count];
+
+            var i = 0;
+            foreach (var item in source)
+                result[i++] = mappingFunction(item);
 
             return result;
         }

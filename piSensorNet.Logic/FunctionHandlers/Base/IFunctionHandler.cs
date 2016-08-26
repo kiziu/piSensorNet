@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using piSensorNet.Common.Enums;
@@ -16,6 +15,6 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
         [CanBeNull]
         TriggerSourceTypeEnum? TriggerSourceType { get; }
 
-        FunctionHandlerResult Handle([NotNull] FunctionHandlerContext context, [NotNull] Packet packet, [NotNull] ref Queue<Action<IMainHubEngine>> hubMessageQueue);
+        FunctionHandlerResult Handle([NotNull] FunctionHandlerContext context, [NotNull] Packet packet, [NotNull] ref HubMessageQueue hubMessageQueue);
     }
 }

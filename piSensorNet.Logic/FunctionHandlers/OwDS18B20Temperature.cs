@@ -7,6 +7,7 @@ using piSensorNet.Common;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Entities;
+using piSensorNet.Logic.Custom;
 using piSensorNet.Logic.FunctionHandlers.Base;
 
 namespace piSensorNet.Logic.FunctionHandlers
@@ -21,7 +22,7 @@ namespace piSensorNet.Logic.FunctionHandlers
 
         protected override Func<KeyValuePair<string, string>, string> GetAddress => pair => pair.Key;
 
-        protected override void ItemCallback(FunctionHandlerContext context, Packet packet, Queue<Action<IMainHubEngine>> hubMessageQueue, KeyValuePair<string, string> item, TemperatureSensor sensor, bool wasSensorCreated)
+        protected override void ItemCallback(FunctionHandlerContext context, Packet packet, HubMessageQueue hubMessageQueue, KeyValuePair<string, string> item, TemperatureSensor sensor, bool wasSensorCreated)
         {
             decimal reading;
             if(!decimal.TryParse(item.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out reading))
@@ -37,7 +38,7 @@ namespace piSensorNet.Logic.FunctionHandlers
 
             context.DatabaseContext.TemperatureReadouts.Add(temperatureReading);
 
-            hubMessageQueue.Enqueue(proxy => proxy.NewTemperatureReading(packet.Module.ID, temperatureReading.TemperatureSensorID, temperatureReading.Value, temperatureReading.Created, temperatureReading.Received));
+            hubMessageQueue.Enqueue(i => i.NewTemperatureReading(packet.Module.ID, temperatureReading.TemperatureSensorID, temperatureReading.Value, temperatureReading.Created, temperatureReading.Received));
         }
     }
 }

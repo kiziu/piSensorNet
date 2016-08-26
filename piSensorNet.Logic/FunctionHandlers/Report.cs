@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using piSensorNet.Common.Enums;
@@ -14,7 +13,7 @@ namespace piSensorNet.Logic.FunctionHandlers
     {
         public override FunctionTypeEnum FunctionType => FunctionTypeEnum.Report;
 
-        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref HubMessageQueue hubMessageQueue)
         {
             var queryableFunctionPairs = FunctionHandlerHelper.SplitPairs(packet.Text, context.ModuleConfiguration.FunctionResultDelimiter, context.ModuleConfiguration.FunctionResultNameDelimiter);
             var module = packet.Module;

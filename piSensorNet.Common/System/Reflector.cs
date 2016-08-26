@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using JetBrains.Annotations;
@@ -9,76 +11,72 @@ namespace piSensorNet.Common.System
     public static class Reflector
     {
         [NotNull]
-        private static MethodInfo GetMethod([NotNull] LambdaExpression e)
-        {
-            return ((MethodInfo)((ConstantExpression)((MethodCallExpression)((UnaryExpression)e.Body).Operand).Object).Value);
-        }
+        public static MethodInfo GetMethod([NotNull] LambdaExpression e)
+            => ((MethodInfo)((ConstantExpression)((MethodCallExpression)((UnaryExpression)e.Body).Operand).Object).Value);
 
         [NotNull]
-        private static PropertyInfo GetProperty([NotNull] LambdaExpression e)
-        {
-            return (PropertyInfo)((MemberExpression)e.Body).Member;
-        }
+        public static PropertyInfo GetProperty([NotNull] LambdaExpression e)
+            => (PropertyInfo)((MemberExpression)e.Body).Member;
 
         [NotNull]
-        private static FieldInfo GetField([NotNull] LambdaExpression e)
+        public static FieldInfo GetField([NotNull] LambdaExpression e)
+            => (FieldInfo)((MemberExpression)e.Body).Member;
+
+        [CanBeNull]
+        private static ConstructorInfo GetConstructor(IReadOnlyCollection<ConstructorInfo> constructors, params Type[] types)
         {
-            return (FieldInfo)((MemberExpression)e.Body).Member;
+            return constructors.Where(i => i.GetParameters()
+                                            .Select(ii => ii.ParameterType)
+                                            .SequenceEqual(types))
+                               .SingleOrDefault();
         }
-        
+
         public static class Static
         {
             [NotNull]
             public static PropertyInfo Property<TReturn>([NotNull] Expression<Func<TReturn>> e)
-            {
-                return GetProperty(e);
-            }
+                => GetProperty(e);
 
             [NotNull]
             public static FieldInfo Field<TReturn>([NotNull] Expression<Func<TReturn>> e)
-            {
-                return GetField(e);
-            }
+                => GetField(e);
 
             [NotNull]
             public static MethodInfo Method([NotNull] Expression<Func<Action>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<T1>([NotNull] Expression<Func<Action<T1>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<T1, T2>([NotNull] Expression<Func<Action<T1, T2>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<TReturn>([NotNull] Expression<Func<Func<TReturn>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<T1, TReturn>([NotNull] Expression<Func<Func<T1, TReturn>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<T1, T2, TReturn>([NotNull] Expression<Func<Func<T1, T2, TReturn>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
+
+            [NotNull]
+            public static MethodInfo Method<T1, T2, T3, TReturn>([NotNull] Expression<Func<Func<T1, T2, T3, TReturn>>> e)
+                => GetMethod(e);
         }
 
         public static class Instance<T>
         {
+            // ReSharper disable once StaticMemberInGenericType
+            [NotNull]
+            private static readonly Lazy<IReadOnlyCollection<ConstructorInfo>> _constuctors =
+                new Lazy<IReadOnlyCollection<ConstructorInfo>>(() => Type.GetConstructors());
+
             [NotNull]
             public static Type Type { get; } = typeof(T);
 
@@ -96,56 +94,39 @@ namespace piSensorNet.Common.System
 
             [NotNull]
             public static PropertyInfo Property<TReturn>([NotNull] Expression<Func<T, TReturn>> e)
-            {
-                return GetProperty(e);
-            }
+                => GetProperty(e);
 
             [NotNull]
             public static FieldInfo Field<TReturn>([NotNull] Expression<Func<T, TReturn>> e)
-            {
-                return GetField(e);
-            }
+                => GetField(e);
 
             [NotNull]
             public static MethodInfo Method([NotNull] Expression<Func<T, Action>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<T1>([NotNull] Expression<Func<T, Action<T1>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<T1, T2>([NotNull] Expression<Func<T, Action<T1, T2>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<TReturn>([NotNull] Expression<Func<T, Func<TReturn>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<T1, TReturn>([NotNull] Expression<Func<T, Func<T1, TReturn>>> e)
-            {
-                return GetMethod(e);
-            }
+                => GetMethod(e);
 
             [NotNull]
             public static MethodInfo Method<T1, T2, TReturn>([NotNull] Expression<Func<T, Func<T1, T2, TReturn>>> e)
-            {
-                return GetMethod(e);
-            }
-        }
+                => GetMethod(e);
 
-        public static class LooselyTyped
-        {
-            
+            [CanBeNull]
+            public static ConstructorInfo Constructor<T1, T2>()
+                => GetConstructor(_constuctors.Value, Instance<T1>.Type, Instance<T2>.Type);
         }
     }
 }

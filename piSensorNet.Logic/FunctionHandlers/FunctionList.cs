@@ -15,7 +15,7 @@ namespace piSensorNet.Logic.FunctionHandlers
     {
         public override FunctionTypeEnum FunctionType => FunctionTypeEnum.FunctionList;
 
-        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref HubMessageQueue hubMessageQueue)
         {
             var module = packet.Module;
 
@@ -60,7 +60,7 @@ namespace piSensorNet.Logic.FunctionHandlers
             {
                 context.DatabaseContext.SaveChanges();
 
-                hubMessageQueue.Enqueue(proxy => proxy.NewModuleFunctions(module.ID, newModuleFunctions));
+                hubMessageQueue.Enqueue(i => i.NewModuleFunctions(module.ID, newModuleFunctions));
             }
 
             return PacketStateEnum.Handled;

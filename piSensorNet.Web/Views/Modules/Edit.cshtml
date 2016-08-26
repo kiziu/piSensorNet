@@ -4,15 +4,15 @@
     Layout = null;
 }
 
-@using (Html.BeginForm("Edit", "Modules", FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "editForm" }))
+@using (Html.BeginForm("Edit", "Modules", FormMethod.Post, new {@class = "form-horizontal", role = "form", id = "editForm"}))
 {
     @(Html.HiddenFor(m => m.ID))
-    @(Html.ValidationSummary(false, null, new { data_valmsg_summary = "true", @class = "text-danger"}))
+    @(Html.ValidationSummary(false, null, new {data_valmsg_summary = "true", @class = "text-danger"}))
 
     <div class="form-group">
         @(Html.LabelFor(m => m.Address, new {@class = "col-md-2 control-label"}))
         <div class="col-md-6">
-            @(Html.ReadonlyTextBoxFor(m => m.Address, new {@class = "form-control"}))
+            @(Html.ReadonlyTextBoxFor(m => m.Address, new {@class = "form-control"}, true))
         </div>
     </div>
 
@@ -28,21 +28,21 @@
         @(Html.LabelFor(m => m.Description, new {@class = "col-md-2 control-label"}))
         <div class="col-md-6">
             @(Html.TextAreaFor(m => m.Description, new {@class = "form-control"}))
-            @(Html.ValidationMessageFor(m => m.Description, new {@class = "text-danger" }))
+            @(Html.ValidationMessageFor(m => m.Description, new {@class = "text-danger"}))
         </div>
     </div>
 
     <div class="form-group">
         @(Html.LabelFor(m => m.State, new {@class = "col-md-2 control-label"}))
         <div class="col-md-6">
-            @(Html.ReadonlyTextBox(Html.NameFor(m => m.State), Model.State.Localize(), new {@class = "form-control"}))
+            @(Html.ReadonlyTextBox(Html.NameFor(m => m.State), Model.State.Localize(), new {@class = "form-control"}, true))
         </div>
     </div>
 
     <div class="form-group">
         @(Html.LabelFor(m => m.Created, new {@class = "col-md-2 control-label"}))
         <div class="col-md-6">
-            @(Html.ReadonlyTextBoxFor(m => m.Created, Constants.DateTimeFormat, new {@class = "form-control"}))
+            @(Html.ReadonlyTextBoxFor(m => m.Created, Constants.DateTimeFormat, new {@class = "form-control"}, true))
         </div>
     </div>
 

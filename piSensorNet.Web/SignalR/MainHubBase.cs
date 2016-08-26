@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Microsoft.AspNet.SignalR;
 using Microsoft.AspNet.SignalR.Hubs;
+using piSensorNet.Common.Extensions;
 using piSensorNet.Web.SignalR.Interfaces;
 
 namespace piSensorNet.Web.SignalR
@@ -16,11 +18,16 @@ namespace piSensorNet.Web.SignalR
 
         public static string EngineClientConnectionID { get; private set; }
 
+        [NotNull]
         public IClient NonEngine => Clients.AllExcept(EngineClientConnectionID);
-        public IEngine Engine => Clients.Client(EngineClientConnectionID);
+
+        [CanBeNull]
+        public IEngine Engine => EngineClientConnectionID?.For(Clients.Client);
         
         public override Task OnDisconnected(bool stopCalled)
         {
+            TryIdentifyEngine(Context, true);
+
             Console.WriteLine($"{Now}: Disconnected, ID {Context.ConnectionId}{(IsEngine() ? ", engine" : "")}");
 
             return base.OnDisconnected(stopCalled);
@@ -55,12 +62,12 @@ namespace piSensorNet.Web.SignalR
         }
         
         // ReSharper disable once UnusedMethodReturnValue.Local
-        private static bool TryIdentifyEngine(HubCallerContext context)
+        private static bool TryIdentifyEngine(HubCallerContext context, bool disconnect = false)
         {
             if (!String.Equals(EngineQueryStringValue, context.QueryString[EngineQueryStringKey]))
                 return false;
 
-            EngineClientConnectionID = context.ConnectionId;
+            EngineClientConnectionID = disconnect ? null : context.ConnectionId;
 
             return true;
         }
@@ -72,6 +79,9 @@ namespace piSensorNet.Web.SignalR
 
         private void SendError(string clientID, string message)
         {
+            if (clientID == null)
+                Clients.All.OnError(message);
+
             Clients.Client(clientID).OnError(message);
         }
     }

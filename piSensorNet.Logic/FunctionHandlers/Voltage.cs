@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -16,7 +15,7 @@ namespace piSensorNet.Logic.FunctionHandlers
         public override FunctionTypeEnum FunctionType => FunctionTypeEnum.Voltage;
         public override TriggerSourceTypeEnum? TriggerSourceType =>  TriggerSourceTypeEnum.VoltageReadout;
 
-        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref HubMessageQueue hubMessageQueue)
         {
             var module = packet.Module;
 
@@ -31,7 +30,7 @@ namespace piSensorNet.Logic.FunctionHandlers
             context.DatabaseContext.VoltageReadouts.Add(voltageReading);
             context.DatabaseContext.SaveChanges();
 
-            hubMessageQueue.Enqueue(proxy => proxy.NewVoltageReading(voltageReading.ModuleID, voltageReading.Value, voltageReading.Created, voltageReading.Received));
+            hubMessageQueue.Enqueue(i => i.NewVoltageReading(voltageReading.ModuleID, voltageReading.Value, voltageReading.Created, voltageReading.Received));
 
             return PacketStateEnum.Handled;
         }

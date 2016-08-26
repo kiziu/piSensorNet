@@ -12,14 +12,14 @@ namespace piSensorNet.Web.SignalR
         {
             Console.WriteLine($"{Now}: {nameof(Identify)}({moduleID?.ToString() ?? "<null>"}) ${Context.ConnectionId}");
 
-            Engine.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.Identify);
+            Engine?.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.Identify);
         }
 
         public void ReadTemperature(int? moduleID)
         {
             Console.WriteLine($"{Now}: {nameof(ReadTemperature)}({moduleID?.ToString() ?? "<null>"}) ${Context.ConnectionId}");
 
-            Engine.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.OwDS18B20Temperature);
+            Engine?.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.OwDS18B20Temperature);
         }
 
         public void SetTemperatureReportPeriod(int moduleID, TimeSpan period)
@@ -37,7 +37,7 @@ namespace piSensorNet.Web.SignalR
 
             var text = value.ToString("D", CultureInfo.InvariantCulture);
 
-            Engine.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.OwDS18B20TemperaturePeriodical, text);
+            Engine?.SendMessage(Context.ConnectionId, moduleID, FunctionTypeEnum.OwDS18B20TemperaturePeriodical, text);
         }
     }
 }

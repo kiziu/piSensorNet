@@ -96,7 +96,7 @@ namespace piSensorNet.Web
                               .UseDeveloperExceptionPage()
                               .UseMvc(routes => ConfigureRoutes<HomeController>(routes,
                                   Reflector.Instance<HomeController>.ControllerName,
-                                  Reflector.Instance<HomeController>.Method<IActionResult>(i => i.Index).Name));
+                                  nameof(HomeController.Index)));
 
             jsonSerializer.Converters.Add(new StringEnumConverter());
         }

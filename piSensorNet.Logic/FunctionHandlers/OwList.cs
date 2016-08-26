@@ -4,6 +4,7 @@ using System.Linq;
 using piSensorNet.Common;
 using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Entities;
+using piSensorNet.Logic.Custom;
 using piSensorNet.Logic.FunctionHandlers.Base;
 
 namespace piSensorNet.Logic.FunctionHandlers
@@ -23,11 +24,11 @@ namespace piSensorNet.Logic.FunctionHandlers
 
         protected override Func<string, string> GetAddress => item => item;
 
-        protected override void OnHandled(FunctionHandlerContext context, Module module, Queue<Action<IMainHubEngine>> hubMessageQueue, IReadOnlyCollection<TemperatureSensor> newSensors)
+        protected override void OnHandled(FunctionHandlerContext context, Module module, HubMessageQueue hubMessageQueue, IReadOnlyCollection<TemperatureSensor> newSensors)
         {
             var dictionary = newSensors.ToDictionary(i => i.ID, i => i.Address);
 
-            hubMessageQueue.Enqueue(proxy => proxy.NewOneWireDevices(module.ID, dictionary));
+            hubMessageQueue.Enqueue(i => i.NewOneWireDevices(module.ID, dictionary));
         }
     }
 }

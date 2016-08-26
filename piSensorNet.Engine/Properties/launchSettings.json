@@ -3,7 +3,6 @@
         "piSensorNet.Engine": {
             "commandName": "Project",
             "commandLineArgs": "standalone"
-            //"commandLineArgs": "recreateOnly"
         }
     }
 }

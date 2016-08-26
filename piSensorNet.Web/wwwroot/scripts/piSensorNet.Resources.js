@@ -1,4 +1,4 @@
-﻿(function (root, resources, $) {
+﻿(function(root, resources, $) {
     resources.localize = function(resourceKey) {
         if (!resourceKey)
             throw 'sResourceKey must be non-empty';

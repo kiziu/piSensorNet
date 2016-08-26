@@ -94,6 +94,13 @@ div.sidebar-footer {
     animation: spinner .8s linear infinite;
 }
 
+.dataTables_wrapper table.dataTable td:hover {
+    background-color: #bbccde;
+}
+
+.dataTables_wrapper table.dataTable tr:hover {
+    background-color: #d9e4f1;
+}
 
 .dataTables_wrapper .dataTables_title {
     float: left;

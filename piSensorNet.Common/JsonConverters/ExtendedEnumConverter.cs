@@ -7,12 +7,15 @@ namespace piSensorNet.Common.JsonConverters
 {
     public sealed class ExtendedEnumConverter : JsonConverter
     {
+        public const string ValueKey = "value";
+        public const string NameKey = "name";
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             writer.WriteStartObject();
-            writer.WritePropertyName("value");
+            writer.WritePropertyName(ValueKey);
             writer.WriteValue((int)value);
-            writer.WritePropertyName("name");
+            writer.WritePropertyName(NameKey);
             writer.WriteValue(value.ToString());
             writer.WriteEndObject();
         }
@@ -34,9 +37,7 @@ namespace piSensorNet.Common.JsonConverters
             return member.GetValue(null);
         }
 
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType.IsEnum;
-        }
+        public override bool CanConvert(Type objectType) 
+            => objectType.IsEnum;
     }
 }

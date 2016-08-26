@@ -10,6 +10,7 @@ using Microsoft.AspNet.Mvc.ViewFeatures;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.System;
 using piSensorNet.Web.Custom;
+using piSensorNet.Web.Custom.DataTables;
 
 namespace piSensorNet.Web.Extensions
 {
@@ -40,10 +41,14 @@ namespace piSensorNet.Web.Extensions
     public static class HtmlHelperExtensions
     {
         private const string ReadonlyAttribute = "readonly";
+        private const string DisabledAttribute = "disabled";
 
         public static void Resources([NotNull] this IHtmlHelper htmlHelper, [NotNull] params Expression<Func<string>>[] resources)
         {
-            var expressionResources = htmlHelper.ViewContext.HttpContext.GetItem<List<Expression<Func<string>>>>(CustomPageBase.ExpressionViewResourcesItemsKey);
+            var expressionResources = htmlHelper.ViewContext
+                                                .HttpContext
+                                                .GetItem<List<Expression<Func<string>>>>(
+                                                    CustomPageBase.ExpressionViewResourcesItemsKey);
 
             expressionResources.AddRange(resources);
         }
@@ -52,7 +57,10 @@ namespace piSensorNet.Web.Extensions
             where TEnum : struct
         {
             var localized = LocalizationExtensions.LocalizeAllKeyed<TEnum>();
-            var rawResources = htmlHelper.ViewContext.HttpContext.GetItem<Dictionary<string, string>>(CustomPageBase.RawViewResourcesItemsKey);
+            var rawResources = htmlHelper.ViewContext
+                                         .HttpContext
+                                         .GetItem<Dictionary<string, string>>(
+                                             CustomPageBase.RawViewResourcesItemsKey);
 
             rawResources.Add(localized);
         }
@@ -64,26 +72,40 @@ namespace piSensorNet.Web.Extensions
             => Reflector.Instance<TResources>.Name + "_" + Reflector.Instance<TEnum>.EnumName;
 
         [NotNull]
-        public static IHtmlContent ReadonlyTextBox([NotNull] this IHtmlHelper htmlHelper, [NotNull] string name, object value, [CanBeNull] string format, [CanBeNull] object htmlAttributes)
+        public static IHtmlContent ReadonlyTextBox([NotNull] this IHtmlHelper htmlHelper, [NotNull] string name, object value,
+            [CanBeNull] string format, [CanBeNull] object htmlAttributes, bool isDisabled = false)
             => htmlHelper.TextBox(name, value,
-                HtmlHelper.AnonymousObjectToHtmlAttributes(htmlAttributes).AddOrReplace(ReadonlyAttribute, (object)ReadonlyAttribute));
+                HtmlHelper.AnonymousObjectToHtmlAttributes(htmlAttributes)
+                          .AddOrReplace(ReadonlyAttribute, ReadonlyAttribute)
+                          .If(isDisabled, i => i.AddOrReplace(DisabledAttribute, DisabledAttribute)));
 
         [NotNull]
-        public static IHtmlContent ReadonlyTextBox([NotNull] this IHtmlHelper htmlHelper, [NotNull] string name, object value, [CanBeNull] object htmlAttributes)
-            => ReadonlyTextBox(htmlHelper, name, value, null, htmlAttributes);
+        public static IHtmlContent ReadonlyTextBox([NotNull] this IHtmlHelper htmlHelper, [NotNull] string name, object value,
+            [CanBeNull] object htmlAttributes, bool isDisabled = false)
+            => ReadonlyTextBox(htmlHelper, name, value, null, htmlAttributes, isDisabled);
 
         [NotNull]
-        public static IHtmlContent ReadonlyTextBoxFor<TModel, TResult>([NotNull] this IHtmlHelper<TModel> htmlHelper, [NotNull] Expression<Func<TModel, TResult>> expression, [NotNull] string format, [CanBeNull] object htmlAttributes = null)
+        public static IHtmlContent ReadonlyTextBoxFor<TModel, TResult>([NotNull] this IHtmlHelper<TModel> htmlHelper,
+            [NotNull] Expression<Func<TModel, TResult>> expression, [NotNull] string format, [CanBeNull] object htmlAttributes = null,
+            bool isDisabled = false)
             => htmlHelper.TextBoxFor(expression, format,
-                HtmlHelper.AnonymousObjectToHtmlAttributes(htmlAttributes).AddOrReplace(ReadonlyAttribute, (object)ReadonlyAttribute));
+                HtmlHelper.AnonymousObjectToHtmlAttributes(htmlAttributes)
+                          .AddOrReplace(ReadonlyAttribute, ReadonlyAttribute)
+                          .If(isDisabled, i => i.AddOrReplace(DisabledAttribute, DisabledAttribute)));
 
         [NotNull]
-        public static IHtmlContent ReadonlyTextBoxFor<TModel, TResult>([NotNull] this IHtmlHelper<TModel> htmlHelper, [NotNull] Expression<Func<TModel, TResult>> expression, [CanBeNull] object htmlAttributes = null)
+        public static IHtmlContent ReadonlyTextBoxFor<TModel, TResult>([NotNull] this IHtmlHelper<TModel> htmlHelper,
+            [NotNull] Expression<Func<TModel, TResult>> expression, [CanBeNull] object htmlAttributes = null, bool isDisabled = false)
             // ReSharper disable once AssignNullToNotNullAttribute
-            => ReadonlyTextBoxFor(htmlHelper, expression, null, htmlAttributes);
+            => ReadonlyTextBoxFor(htmlHelper, expression, null, htmlAttributes, isDisabled);
 
         [NotNull]
-        public static IHtmlContent ValidationMessageFor<TModel, TResult>([NotNull] this IHtmlHelper<TModel> htmlHelper, [NotNull] Expression<Func<TModel, TResult>> expression, [CanBeNull] object htmlAttributes = null)
+        public static IHtmlContent ValidationMessageFor<TModel, TResult>([NotNull] this IHtmlHelper<TModel> htmlHelper,
+            [NotNull] Expression<Func<TModel, TResult>> expression, [CanBeNull] object htmlAttributes = null)
             => htmlHelper.ValidationMessageFor(expression, null, htmlAttributes);
+
+        [NotNull]
+        public static DataTable<TElement> DataTable<TElement>([NotNull] this IHtmlHelper htmlHelper, [NotNull] string tableID)
+            => new DataTable<TElement>(htmlHelper, tableID);
     }
 }

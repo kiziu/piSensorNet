@@ -13,7 +13,7 @@
             var $dialog = $(this);
             var $footer = $('<div />').addClass(dialog.footerClass);
             var $dialogFooter = $dialog.find(dialog.footerSourceSelector);
-            
+
             $dialogFooter.detach();
             $footer.append($dialogFooter.html());
 
@@ -25,21 +25,21 @@
             var $form = $dialog.find('form');
 
             $.validator.unobtrusive.parse($form);
-            
+
             $dialogParent.find(dialog.formSubmitSelector)
                 .on('click.ActionFormSubmit',
-                    function () {
+                    function() {
                         $form.submit();
                     });
 
             $dialogParent.find(dialog.dialogCloseSelector)
                 .on('click.ActionFormSubmit',
-                    function () {
+                    function() {
                         $dialog.dialog('close');
                     });
-            
+
             $form.on('submit',
-                function (event) {
+                function(event) {
                     event.preventDefault();
 
                     var _$form = $(this);
@@ -60,7 +60,7 @@
                         'cache': false,
                         'processData': false,
                         'data': JSON.stringify(_$form.serializeObject()),
-                        'success': function (_result, _textStatus, _jqXHR) {
+                        'success': function(_result, _textStatus, _jqXHR) {
                             var _$dialog = $(dialog.dialogSelector);
                             var _$wholeDialog = _$dialog.closest(dialog.dialogParentSelector);
 
@@ -79,16 +79,16 @@
                             }
 
                             _$dialog.dialog('close');
-                            debugger;
-                            $.isFunction(successCallback) && successCallback.call(this);
                             
+                            $.isFunction(successCallback) && successCallback.call(this);
+
                             noty({
                                 'type': 'information',
                                 'text': _result.data,
                                 'timeout': dialog.defaultNotyTimeout
                             });
                         },
-                        'error': function (jqXHR, textStatus, errorThrown) {
+                        'error': function(jqXHR, textStatus, errorThrown) {
                             var _$dialog = $(dialog.dialogSelector);
                             var _$wholeDialog = _$dialog.closest(dialog.dialogParentSelector);
 
@@ -110,7 +110,7 @@
         }
     }
 
-    dialog.editor = function (url, title, successCallback) {
+    dialog.editor = function(url, title, successCallback) {
         $(dialog.dialogSelector)
             .load(url, editor(successCallback))
             .dialog({
@@ -123,7 +123,7 @@
                 'draggable': false,
                 'resizable': false,
                 'closeOnEscape': false,
-                'close': function () {
+                'close': function() {
                     var $dialog = $(this);
 
                     $dialog.parent().find('.ui-dialog-footer').remove();

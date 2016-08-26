@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -15,10 +14,10 @@ namespace piSensorNet.Logic.FunctionHandlers
     {
         public override FunctionTypeEnum FunctionType => FunctionTypeEnum.OwDS18B20TemperaturePeriodical;
 
-        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public override FunctionHandlerResult Handle(FunctionHandlerContext context, Packet packet, ref HubMessageQueue hubMessageQueue)
             => Handle(context, packet, packet.Text, hubMessageQueue);
 
-        public PacketStateEnum Handle(FunctionHandlerContext context, Packet originalPacket, string response, Queue<Action<IMainHubEngine>> hubMessageQueue)
+        public PacketStateEnum Handle(FunctionHandlerContext context, Packet originalPacket, string response, HubMessageQueue hubMessageQueue)
         {
             var module = originalPacket.Module;
 
@@ -36,21 +35,13 @@ namespace piSensorNet.Logic.FunctionHandlers
             var periodLengthinMs = periodUnits * context.ModuleConfiguration.PeriodUnitLengthInMs;
             var period = TimeSpan.FromMilliseconds(periodLengthinMs);
 
-            //context.EnqueueRaw(TemperatureSensor.GenerateUpdate(
-            //    context,
-            //    new Dictionary<Expression<Func<TemperatureSensor, object>>, string>
-            //    {
-            //        {i => i.Period, period.ToSql()}
-            //    },
-            //    new Tuple<Expression<Func<TemperatureSensor, object>>, string, string>(i => i.ModuleID, "=", module.ID.ToSql())));
-
             context.DatabaseContext.EnqueueUpdate<TemperatureSensor>(
                 i => i.Period == period,
                 i => i.ModuleID == module.ID);
 
             context.DatabaseContext.ExecuteRaw();
 
-            hubMessageQueue.Enqueue(proxy => proxy.ChangedTemperatureSensorPeriod(module.ID, period));
+            hubMessageQueue.Enqueue(i => i.ChangedTemperatureSensorPeriod(module.ID, period));
 
             return PacketStateEnum.Handled;
         }
