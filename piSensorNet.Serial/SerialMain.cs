@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using piSensorNet.Common;
+using piSensorNet.Common.Configuration;
 using piSensorNet.Common.Custom;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
@@ -34,8 +35,7 @@ namespace piSensorNet.Serial
                 {SignalTypeEnum.User1, NeMessageToSendSignalHandler},
             };
 
-        private static IConfiguration Configuration { get; } = Common.Configuration.Load("config.json");
-        private static IModuleConfiguration ModuleConfiguration { get; } = new ModuleConfiguration(Configuration);
+        private static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load("config.json");
 
         private static int? _lastMessageSentID;
 
@@ -55,7 +55,7 @@ namespace piSensorNet.Serial
             var toDispose = new DisposalQueue();
             var engineProcessID = FindSerialProcessID(Configuration, ToConsole);
 
-            PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString);
+            PiSensorNetDbContext.Initialize(Configuration.ConnectionString);
 
             //PiSensorNetDbContext.Logger = Console.Write;
 
@@ -88,15 +88,15 @@ namespace piSensorNet.Serial
                         continue;
                 }
 
-                HandleReceivedMessages(engineProcessID, ReceivedMessages, ModuleConfiguration, ToConsole);
+                HandleReceivedMessages(engineProcessID, ReceivedMessages, Configuration, ToConsole);
 
                 if (_pollMessagesToSend)
                 {
                     _pollMessagesToSend = false;
-                    PollMessagesToSend(MessagesToSend, ModuleConfiguration, ToConsole);
+                    PollMessagesToSend(MessagesToSend, Configuration, ToConsole);
                 }
 
-                _lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, ModuleConfiguration, MessageBuilder, ToConsole);
+                _lastMessageSentID = SendMessage(MessagesToSend, _lastMessageSentID, Configuration, MessageBuilder, ToConsole);
             }
 
             ToConsole("Main: Stopping...");
@@ -113,7 +113,7 @@ namespace piSensorNet.Serial
             return 0;
         }
         
-        private static int? FindSerialProcessID(IConfiguration configuration, Action<string> logger)
+        private static int? FindSerialProcessID(IReadOnlyConfiguration configuration, Action<string> logger)
         {
             if (Constants.IsWindows)
                 throw new Exception("Linux only!");
@@ -168,7 +168,7 @@ namespace piSensorNet.Serial
             return read;
         }
 
-        internal static void HandleReceivedMessages(int? engineProcessID, ConcurrentQueue<string> receivedMessages, IModuleConfiguration moduleConfiguration, Action<string> logger)
+        internal static void HandleReceivedMessages(int? engineProcessID, ConcurrentQueue<string> receivedMessages, IpiSensorNetConfiguration moduleConfiguration, Action<string> logger)
         {
             if (receivedMessages.Count == 0)
                 return;
@@ -246,7 +246,7 @@ namespace piSensorNet.Serial
                 Signal.Send(engineProcessID.Value, SignalTypeEnum.User1);
         }
 
-        private static void PollMessagesToSend(Queue<Message> messagesToSend, IModuleConfiguration moduleConfiguration, Action<string> logger)
+        private static void PollMessagesToSend(Queue<Message> messagesToSend, IpiSensorNetConfiguration moduleConfiguration, Action<string> logger)
         {
             logger("PollMessagesToSend: Start...");
 
@@ -270,7 +270,7 @@ namespace piSensorNet.Serial
             }
         }
 
-        private static string AssembleMessage(StringBuilder builder, Message messageToSend, IModuleConfiguration moduleConfiguration)
+        private static string AssembleMessage(StringBuilder builder, Message messageToSend, IpiSensorNetConfiguration moduleConfiguration)
         {
             var nodeAddress = messageToSend.Module?.Address ?? moduleConfiguration.BroadcastAddress;
             var messageID = messageToSend.ID.ToBase36();
@@ -296,7 +296,7 @@ namespace piSensorNet.Serial
             return text;
         }
 
-        private static int? SendMessage(Queue<Message> messagesToSend, int? lastMessageSentID, IModuleConfiguration moduleConfiguration, StringBuilder messageBuilder, Action<string> logger)
+        private static int? SendMessage(Queue<Message> messagesToSend, int? lastMessageSentID, IpiSensorNetConfiguration moduleConfiguration, StringBuilder messageBuilder, Action<string> logger)
         {
             if (messagesToSend.Count == 0 || lastMessageSentID.HasValue)
                 return lastMessageSentID;

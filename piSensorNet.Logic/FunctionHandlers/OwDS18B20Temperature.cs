@@ -17,7 +17,7 @@ namespace piSensorNet.Logic.FunctionHandlers
         public override FunctionTypeEnum FunctionType => FunctionTypeEnum.OwDS18B20Temperature;
         public override TriggerSourceTypeEnum? TriggerSourceType => TriggerSourceTypeEnum.TemperatureReadout;
 
-        protected override IReadOnlyCollection<KeyValuePair<string, string>> GetItems(IModuleConfiguration moduleConfiguration, Packet packet)
+        protected override IReadOnlyCollection<KeyValuePair<string, string>> GetItems(IpiSensorNetConfiguration moduleConfiguration, Packet packet)
             => FunctionHandlerHelper.SplitPairs(packet.Text, moduleConfiguration.FunctionResultDelimiter, moduleConfiguration.FunctionResultValueDelimiter);
 
         protected override Func<KeyValuePair<string, string>, string> GetAddress => pair => pair.Key;

@@ -12,7 +12,7 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
 {
     public class FunctionHandlerContext : TriggerSourceHandlerHelperContext
     {
-        public FunctionHandlerContext(IModuleConfiguration moduleConfiguration, PiSensorNetDbContext databaseContext, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, DateTime triggerDateTime)
+        public FunctionHandlerContext(IpiSensorNetConfiguration moduleConfiguration, PiSensorNetDbContext databaseContext, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, DateTime triggerDateTime)
             : base(databaseContext, triggerSourceHandlers, triggerDelegates, triggerDependencyHandlers, triggerDateTime)
         {
             ModuleConfiguration = moduleConfiguration;
@@ -21,7 +21,7 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
             FunctionNames = functionNames;
         }
 
-        public IModuleConfiguration ModuleConfiguration { get; }
+        public IpiSensorNetConfiguration ModuleConfiguration { get; }
 
         public IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> QueryableFunctionHandlers { get; }
         public IReadOnlyMap<FunctionTypeEnum, int> FunctionTypes { get; }

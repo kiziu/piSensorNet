@@ -19,7 +19,7 @@ namespace piSensorNet.Logic.FunctionHandlers
         public override FunctionTypeEnum FunctionType => FunctionTypeEnum.OwList;
         public override TriggerSourceTypeEnum? TriggerSourceType => null;
 
-        protected override IReadOnlyCollection<string> GetItems(IModuleConfiguration moduleConfiguration, Packet packet)
+        protected override IReadOnlyCollection<string> GetItems(IpiSensorNetConfiguration moduleConfiguration, Packet packet)
             => FunctionHandlerHelper.SplitSingle(packet.Text, moduleConfiguration.FunctionResultDelimiter);
 
         protected override Func<string, string> GetAddress => item => item;

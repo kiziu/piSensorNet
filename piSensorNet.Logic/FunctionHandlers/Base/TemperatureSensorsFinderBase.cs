@@ -10,7 +10,7 @@ namespace piSensorNet.Logic.FunctionHandlers.Base
 {
     internal abstract class TemperatureSensorsFinderBase<T> : FunctionHandlerBase
     {
-        protected abstract IReadOnlyCollection<T> GetItems(IModuleConfiguration moduleConfiguration, Packet packet);
+        protected abstract IReadOnlyCollection<T> GetItems(IpiSensorNetConfiguration moduleConfiguration, Packet packet);
         protected abstract Func<T, string> GetAddress { get; }
 
         protected virtual void ItemCallback(FunctionHandlerContext context, Packet packet, HubMessageQueue hubMessageQueue, T item, TemperatureSensor sensor, bool wasSensorCreated) { }

@@ -8,6 +8,7 @@ using System.Threading;
 using System.Timers;
 using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
+using piSensorNet.Common.Configuration;
 using piSensorNet.Common.Custom;
 using piSensorNet.Common.Custom.Interfaces;
 using piSensorNet.Common.Enums;
@@ -34,7 +35,7 @@ namespace piSensorNet.Engine
 {
     public delegate void UserFunctionDelegate(IReadOnlyDictionary<string, int> modules);
 
-    internal delegate void MessageHandler(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> moduleAddresses, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, IHubProxy hubProxy, Action<string> logger);
+    internal delegate void MessageHandler(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> moduleAddresses, IpiSensorNetConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, IHubProxy hubProxy, Action<string> logger);
 
     internal delegate IReadOnlyMap<string, int> CacheModuleAddressesDelegate(PiSensorNetDbContext context);
 
@@ -51,8 +52,7 @@ namespace piSensorNet.Engine
                 {SignalTypeEnum.HangUp, RedoCacheSignalHandler},
             };
 
-        private static IConfiguration Configuration { get; } = Common.Configuration.Load("config.json");
-        private static IModuleConfiguration ModuleConfiguration { get; } = new ModuleConfiguration(Configuration);
+        private static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load("config.json");
 
         private static volatile bool _doQuit;
         private static volatile bool _pollPartialPackets;
@@ -89,13 +89,13 @@ namespace piSensorNet.Engine
 
             var recreateDatabase = (recreate || recreateOnly) && !validateModel;
 
-            PiSensorNetDbContext.Initialize(ModuleConfiguration.ConnectionString, recreateDatabase);
+            PiSensorNetDbContext.Initialize(Configuration.ConnectionString, recreateDatabase);
 
             //PiSensorNetDbContext.Logger = Console.Write;
 
             if (validateModel)
             {
-                PiSensorNetDbContext.CheckCompatibility(ModuleConfiguration.ConnectionString);
+                PiSensorNetDbContext.CheckCompatibility(Configuration.ConnectionString);
 
                 ToConsole("Main: Model validation finished, exiting!");
 
@@ -124,7 +124,7 @@ namespace piSensorNet.Engine
             //return 666;
 
             DisposalQueue toDispose;
-            var hubProxy = InitializeHubConnection(Configuration, ModuleConfiguration, InternalHandleMessage, ModuleAddresses, FunctionTypes, serialProcessID, out toDispose, ToConsole);
+            var hubProxy = InitializeHubConnection(Configuration, Configuration, InternalHandleMessage, ModuleAddresses, FunctionTypes, serialProcessID, out toDispose, ToConsole);
 
             toDispose += Signal.Handle(SignalHandlers);
 
@@ -141,7 +141,7 @@ namespace piSensorNet.Engine
                 {
                     WaitHandle.WaitOne(1000);
 
-                    using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
+                    using (var context = PiSensorNetDbContext.Connect(Configuration.ConnectionString))
                     {
                         _pollPackets = context.Packets
                                               .Where(i => i.State == PacketStateEnum.New)
@@ -163,20 +163,20 @@ namespace piSensorNet.Engine
                 {
                     _pollPartialPackets = false;
 
-                    using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
+                    using (var context = PiSensorNetDbContext.Connect(Configuration.ConnectionString))
                     {
-                        _pollPackets = MergePackets(context, ModuleConfiguration, FunctionTypes, FunctionNames, ModuleAddresses, CacheModuleAddresses, ToConsole);
+                        _pollPackets = MergePackets(context, Configuration, FunctionTypes, FunctionNames, ModuleAddresses, CacheModuleAddresses, ToConsole);
 
                         if (_pollPackets)
                         {
                             _pollPackets = false;
 
-                            while (HandlePackets(context, ModuleConfiguration, FunctionTypes, FunctionNames, FunctionHandlers, QueryableFunctionHandlers, TriggerSourceHandlers, TriggerDelegates, TriggerDependencyHandlers, serialProcessID, hubProxy, ToConsole)) {}
+                            while (HandlePackets(context, Configuration, FunctionTypes, FunctionNames, FunctionHandlers, QueryableFunctionHandlers, TriggerSourceHandlers, TriggerDelegates, TriggerDependencyHandlers, serialProcessID, hubProxy, ToConsole)) {}
                         }
                     }
                 }
 
-                HandleAbsoluteTimeTriggers(ModuleConfiguration, TriggerSourceHandlers, TriggerDelegates, AbsoluteTimeTriggers, ToConsole, TriggerDependencyHandlers);
+                HandleAbsoluteTimeTriggers(Configuration, TriggerSourceHandlers, TriggerDelegates, AbsoluteTimeTriggers, ToConsole, TriggerDependencyHandlers);
             }
 
             ToConsole("Main: Stopping...");
@@ -191,7 +191,7 @@ namespace piSensorNet.Engine
 
         private static void BuildCache()
         {
-            using (var context = PiSensorNetDbContext.Connect(ModuleConfiguration.ConnectionString))
+            using (var context = PiSensorNetDbContext.Connect(Configuration.ConnectionString))
             {
                 ModuleAddresses = CacheModuleAddresses(context);
 
@@ -215,7 +215,7 @@ namespace piSensorNet.Engine
         }
 
         // ReSharper disable once UnusedMember.Local
-        private static void Demo(IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> functionHandlers, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
+        private static void Demo(IpiSensorNetConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> functionHandlers, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
         {
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString).WithChangeTracking())
             {
@@ -257,7 +257,7 @@ namespace piSensorNet.Engine
 
         #region Init
 
-        private static int? FindSerialProcessID(IConfiguration configuration, Action<string> logger)
+        private static int? FindSerialProcessID(IReadOnlyConfiguration configuration, Action<string> logger)
         {
             if (Constants.IsWindows)
                 throw new Exception("Linux only!");
@@ -276,7 +276,7 @@ namespace piSensorNet.Engine
             return pid.Value;
         }
 
-        private static IHubProxy InitializeHubConnection(IConfiguration configuration, IModuleConfiguration moduleConfiguration, MessageHandler handler, IReadOnlyMap<string, int> moduleAddresses, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
+        private static IHubProxy InitializeHubConnection(IReadOnlyConfiguration configuration, IpiSensorNetConfiguration moduleConfiguration, MessageHandler handler, IReadOnlyMap<string, int> moduleAddresses, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
         {
             toDispose = new DisposalQueue();
 
@@ -457,7 +457,7 @@ namespace piSensorNet.Engine
 
         #endregion
 
-        internal static bool MergePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyMap<string, int> moduleAddresses, CacheModuleAddressesDelegate cacheModuleAddresses, Action<string> logger)
+        internal static bool MergePackets(PiSensorNetDbContext context, IpiSensorNetConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyMap<string, int> moduleAddresses, CacheModuleAddressesDelegate cacheModuleAddresses, Action<string> logger)
         {
             logger("MergePackets: Start...");
 
@@ -569,7 +569,7 @@ namespace piSensorNet.Engine
             return packetGroupWithPacket.Count > 0;
         }
 
-        internal static bool HandlePackets(PiSensorNetDbContext context, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> functionHandlers, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, int? serialProcessID, IHubProxy hubProxy, Action<string> logger)
+        internal static bool HandlePackets(PiSensorNetDbContext context, IpiSensorNetConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IReadOnlyMap<string, int> functionNames, IReadOnlyDictionary<FunctionTypeEnum, IFunctionHandler> functionHandlers, IReadOnlyDictionary<FunctionTypeEnum, IQueryableFunctionHandler> queryableFunctionHandlers, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerSourceHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers, int? serialProcessID, IHubProxy hubProxy, Action<string> logger)
         {
             logger("HandlePackets: Start...");
 
@@ -644,7 +644,7 @@ namespace piSensorNet.Engine
             return handleAgain;
         }
 
-        internal static void HandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> moduleAddresses, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IHubProxy hubProxy, Action<string> logger)
+        internal static void HandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> moduleAddresses, IpiSensorNetConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, IHubProxy hubProxy, Action<string> logger)
         {
             logger($"HandleMessage: Received message from ${clientID} to @{moduleID?.ToString() ?? "ALL"} - {functionType}{(text == null ? (isQuery ? "?" : String.Empty) : ":" + text)}");
 
@@ -678,7 +678,7 @@ namespace piSensorNet.Engine
             logger($"HandleMessage: Message handled to #{messageID}!"); // ~38ms
         }
 
-        internal static void HandleAbsoluteTimeTriggers(IModuleConfiguration moduleConfiguration, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, ConcurrentQueue<TriggerSource> absoluteTimeTriggers, Action<string> logger, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
+        internal static void HandleAbsoluteTimeTriggers(IpiSensorNetConfiguration moduleConfiguration, IReadOnlyDictionary<TriggerSourceTypeEnum, ITriggerSourceHandler> triggerHandlers, IReadOnlyDictionary<int, TriggerDelegate> triggerDelegates, ConcurrentQueue<TriggerSource> absoluteTimeTriggers, Action<string> logger, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
         {
             if (absoluteTimeTriggers.Count == 0)
                 return;
@@ -722,7 +722,7 @@ namespace piSensorNet.Engine
             WaitHandle.Set();
         }
 
-        private static void InternalHandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> modules, IModuleConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, IHubProxy hubProxy, Action<string> logger)
+        private static void InternalHandleMessage(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> modules, IpiSensorNetConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, IHubProxy hubProxy, Action<string> logger)
         {
             HandleMessage(clientID, moduleID, functionType, isQuery, text, modules, moduleConfiguration, functionTypes, hubProxy, logger);
 
