@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using piSensorNet.Common.Custom;
 
 namespace piSensorNet.Logic.Triggers
 {
@@ -8,14 +9,14 @@ namespace piSensorNet.Logic.Triggers
 
     public sealed class TriggerDelegateContext
     {
-        public TriggerDelegateContext(DateTime now)
+        public TriggerDelegateContext(DateTime now, IReadOnlyDictionary<string, TypedObject> properties)
         {
             Now = now;
+            Properties = properties;
         }
 
         public DateTime Now { get; }
-
-        public IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByAddress { get; internal set; }
-        public IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByFriendlyName { get; internal set; }
+        
+        public IReadOnlyDictionary<string, TypedObject> Properties { get; }
     }
 }

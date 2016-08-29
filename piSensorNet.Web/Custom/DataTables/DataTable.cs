@@ -23,22 +23,29 @@ namespace piSensorNet.Web.Custom.DataTables
 {
     public abstract class DataTable
     {
-        [SuppressMessage("ReSharper", "UnassignedReadonlyField")]
-        public static readonly Nested JSON;
-        [SuppressMessage("ReSharper", "UnassignedReadonlyField"), SuppressMessage("ReSharper", "InconsistentNaming")]
-        public static readonly Nested piSensorNet;
+        public static readonly ICollection<string> Fields = new List<string>
+                                                            {
+                                                                $"{nameof(DataTable)}.{nameof(JSON)}",
+                                                                $"{nameof(DataTable)}.{nameof(piSensorNet)}",
+                                                            };
 
-        internal static readonly string[] JsonLineSeparator = {"\r\n"};
+        // ReSharper disable once UnassignedReadonlyField
+        protected internal static readonly Nested JSON;
 
-        internal static readonly IReadOnlyCollection<JsonConverter> JsonConverters
-            = new JsonConverter[]
-              {
-                  new ExpressionFuncConverter(
-                      nameof(DataTable) + "." + nameof(JSON),
-                      nameof(DataTable) + "." + nameof(piSensorNet)),
-                  new StringEnumConverter(),
-                  new JsonLiteralConverter()
-              };
+        // ReSharper disable once UnassignedReadonlyField
+        // ReSharper disable once InconsistentNaming
+        protected internal static readonly Nested piSensorNet;
+        
+        protected internal static readonly string[] JsonLineSeparator = {"\r\n"};
+
+        protected internal static readonly Lazy<IReadOnlyCollection<JsonConverter>> JsonConverters
+            = new Lazy<IReadOnlyCollection<JsonConverter>>(() =>
+                new JsonConverter[]
+                {
+                    new ExpressionFuncConverter(Fields.MapArray(i => i)),
+                    new StringEnumConverter(),
+                    new JsonLiteralConverter()
+                });
 
         #region Sources
 
@@ -201,7 +208,7 @@ namespace piSensorNet.Web.Custom.DataTables
             builder.AppendLine($"$('table#{_tableID}')");
             builder.Append(indentation).Append(".dataTable(");
 
-            JsonSerializer.Serialize(_data, JsonConverters)
+            JsonSerializer.Serialize(_data, JsonConverters.Value)
                           .Split(JsonLineSeparator, StringSplitOptions.None)
                           .Each((i, e) =>
                                 {

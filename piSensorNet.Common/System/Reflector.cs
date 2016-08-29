@@ -150,7 +150,7 @@ namespace piSensorNet.Common.System
             [NotNull]
             public static MethodInfo Method<T1, T2, TReturn>([NotNull] Expression<Func<T, Func<T1, T2, TReturn>>> e)
                 => GetMethod(e);
-
+            
             [DebuggerStepThrough]
             [NotNull]
             public static MethodInfo Indexer<T1, TReturn>([NotNull] Expression<Func<T, T1, TReturn>> e)
@@ -158,8 +158,18 @@ namespace piSensorNet.Common.System
 
             [DebuggerStepThrough]
             [CanBeNull]
+            public static ConstructorInfo Constructor<T1>()
+                => GetConstructor(_constuctors.Value, Instance<T1>.Type);
+
+            [DebuggerStepThrough]
+            [CanBeNull]
             public static ConstructorInfo Constructor<T1, T2>()
                 => GetConstructor(_constuctors.Value, Instance<T1>.Type, Instance<T2>.Type);
+
+            [DebuggerStepThrough]
+            [CanBeNull]
+            public static ConstructorInfo Constructor<T1, T2, T3>()
+                => GetConstructor(_constuctors.Value, Instance<T1>.Type, Instance<T2>.Type, Instance<T3>.Type);
         }
     }
 }

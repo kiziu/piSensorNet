@@ -39,6 +39,8 @@ namespace piSensorNet.DataModel.Entities
         [MaxLength(5000)]
         public string Content { get; set; }
 
+        public DateTime LastModified { get; set; }
+
         public DateTime Created { get; set; } = DateTime.Now;
 
 

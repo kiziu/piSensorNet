@@ -22,11 +22,11 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "piSensorNet.Common", "piSen
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "piSensorNet.Logic", "piSensorNet.Logic\piSensorNet.Logic.xproj", "{D0FD1D0A-75FE-4724-BAE8-A3A624D03CCE}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "piSensorNet.Tests", "Tests\piSensorNet.Tests\piSensorNet.Tests.xproj", "{C8CCD49E-895B-44DD-BB39-CE67E627B8F5}"
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "piSensorNet.Tests", "piSensorNet.Tests\piSensorNet.Tests.xproj", "{C8CCD49E-895B-44DD-BB39-CE67E627B8F5}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "piSensorNet.HubTester", "Testers\piSensorNet.HubTester\piSensorNet.HubTester.xproj", "{D4F684C8-B6A4-45F0-AAA0-0D9DE32FF946}"
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "piSensorNet.HubTester", "piSensorNet.HubTester\piSensorNet.HubTester.xproj", "{D4F684C8-B6A4-45F0-AAA0-0D9DE32FF946}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "piSensorNet.EngineTester", "Testers\piSensorNet.EngineTester\piSensorNet.EngineTester.xproj", "{39DCA182-2A7A-4999-AC76-5B945B863674}"
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "piSensorNet.EngineTester", "piSensorNet.EngineTester\piSensorNet.EngineTester.xproj", "{39DCA182-2A7A-4999-AC76-5B945B863674}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Testers", "Testers", "{081AE51C-A4A4-426C-9058-8EBDF049B08B}"
 EndProject

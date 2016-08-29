@@ -1,5 +1,62 @@
-﻿@{
+﻿@inherits CustomPageBase
+
+@{
     Layout = "/Views/Shared/_Layout.cshtml";
     ViewBag.Title = "Triggers";
 }
 
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document)
+            .ready(function() {
+                @* ReSharper disable once UnusedLocals *@
+                var editFunctionHandler = function(settings, rowIndex, columnIndex, data) {
+                    var url = '@(Url.Action("Edit", "Triggers", "Manage"))/' + data['@(nameof(TriggerListItemModel.ID))'];
+                    var title = 'Edit trigger ' + data['@(nameof(TriggerListItemModel.FriendlyName))'];
+
+                    piSensorNet.Dialog.editor(url,
+                        title,
+                        () => settings.oInstance.api().ajax.reload());
+                }
+
+                @* ReSharper disable once UnusedLocals *@
+                var identifyFunctionHandler = function(settings, rowIndex, columnIndex, data) {
+                    var id = rowIndex >= 0 ? data['@(nameof(TriggerListItemModel.ID))'] : null;
+
+                    piSensorNet.Net.call('@(nameof(IMainHubClient.Identify))', [id]);
+                }
+
+                @(Html.DataTable<TriggerListItemModel>("triggersTable")
+                      .Indent(4)
+                      .AjaxSource("List")
+                      .Title("Triggers")
+                      .Columns(c =>
+                               {
+                                   c.For(i => i.ID).Visible(false);
+                                   c.For(i => i.FriendlyName);
+                                   c.For(i => i.LastModified).Format(() => piSensorNet["DataTables"]["dateFormatter"].Invoke());
+                                   c.For(i => i.Created).Format(() => piSensorNet["DataTables"]["dateFormatter"].Invoke());
+                                   c.Actions(a => { });
+                               })
+                      .DefaultSorting(i => i.LastModified, SortingDirectionEnum.Ascending))
+            });
+    </script>
+}
+
+
+<div class="row">
+    <table id="triggersTable">
+        <thead>
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th>@*Actions*@</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>

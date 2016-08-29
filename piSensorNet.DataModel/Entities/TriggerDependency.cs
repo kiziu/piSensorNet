@@ -19,6 +19,12 @@ namespace piSensorNet.DataModel.Entities
 
         protected TriggerDependency() {}
 
+        public TriggerDependency(int triggerID, TriggerDependencyTypeEnum type)
+        {
+            TriggerID = triggerID;
+            Type = type;
+        }
+
         [Key]
         [Column(Order = 0)]
         public int TriggerID { get; set; }

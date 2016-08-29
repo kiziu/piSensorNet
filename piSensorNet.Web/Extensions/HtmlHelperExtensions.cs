@@ -48,7 +48,7 @@ namespace piSensorNet.Web.Extensions
             var expressionResources = htmlHelper.ViewContext
                                                 .HttpContext
                                                 .GetItem<List<Expression<Func<string>>>>(
-                                                    CustomPageBase.ExpressionViewResourcesItemsKey);
+                                                    BaseCustomPageBase.ExpressionViewResourcesItemsKey);
 
             expressionResources.AddRange(resources);
         }
@@ -60,7 +60,7 @@ namespace piSensorNet.Web.Extensions
             var rawResources = htmlHelper.ViewContext
                                          .HttpContext
                                          .GetItem<Dictionary<string, string>>(
-                                             CustomPageBase.RawViewResourcesItemsKey);
+                                             BaseCustomPageBase.RawViewResourcesItemsKey);
 
             rawResources.Add(localized);
         }

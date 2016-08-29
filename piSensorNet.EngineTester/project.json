@@ -1,4 +1,4 @@
-{
+﻿{
     "version": "1.0.0",
 
     "sdk": {
@@ -7,10 +7,10 @@
 
     "compilationOptions": {
         "emitEntryPoint": true,
-        "nowarn": ["NU1006"]
+        "nowarn": [ "NU1006" ]
     },
 
-    "contentFiles": ["../globalConfig.json", "config.json"],
+    "contentFiles": ["../globalConfig.json", "../piSensorNet.Engine/config.json"],
 
     "frameworks": {
         "dnx451": {
@@ -18,11 +18,12 @@
                 "System.Data": "4.0.0.0"
             },
             "dependencies": {
-                "piSensorNet.DataModel": "1.0.0",
-                "piSensorNet.WiringPi": "1.0.0",
                 "piSensorNet.Common": "1.0.0",
+                "piSensorNet.DataModel": "1.0.0",
+                "piSensorNet.Logic": "1.0.0",
+                "piSensorNet.Engine": "1.0.0",
                 "EntityFramework": "6.1.3",
-                "MySql.Data.Entity": "6.9.8"
+                "MySql.Data.Entity": "6.9.9"
             }
         }
     }

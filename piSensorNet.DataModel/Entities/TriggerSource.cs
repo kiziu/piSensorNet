@@ -21,6 +21,12 @@ namespace piSensorNet.DataModel.Entities
 
         protected TriggerSource() {}
 
+        public TriggerSource(int triggerID, TriggerSourceTypeEnum type)
+        {
+            TriggerID = triggerID;
+            Type = type;
+        }
+
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ID { get; protected internal set; }

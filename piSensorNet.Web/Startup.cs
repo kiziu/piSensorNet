@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using piSensorNet.Common;
 using piSensorNet.Common.Configuration;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.JsonConverters;
@@ -25,7 +26,7 @@ namespace piSensorNet.Web
 {
     public class Startup
     {
-        public static IReadOnlyConfiguration Configuration { get; } = ReadOnlyConfiguration.Load("config.json");
+        public static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load("config.json");
         private static string ConnectionString => Configuration["Settings:ConnectionString"];
 
         public Startup()

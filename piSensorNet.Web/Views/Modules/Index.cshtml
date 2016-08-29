@@ -1,11 +1,13 @@
-﻿@{
+﻿@inherits CustomPageBase
+
+@{
     Layout = "/Views/Shared/_Layout.cshtml";
     ViewBag.Title = "Modules";
 
     Html.Resources<ModuleStateEnum>();
 }
 
-@section BodyScripts
+@section Scripts
 {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 
@@ -44,8 +46,8 @@
                                    c.For(i => i.ID).Visible(false);
                                    c.For(i => i.Address);
                                    c.For(i => i.FriendlyName);
-                                   c.For(i => i.State).Localize(() => DataTable.piSensorNet["DataTables"]["enumLocalizer"].Invoke(Html.ResourcePrefix<Enums, ModuleStateEnum>()));
-                                   c.For(i => i.Created).Format(() => DataTable.piSensorNet["DataTables"]["dateFormatter"].Invoke());
+                                   c.For(i => i.State).Localize(() => piSensorNet["DataTables"]["enumLocalizer"].Invoke(Html.ResourcePrefix<Enums, ModuleStateEnum>()));
+                                   c.For(i => i.Created).Format(() => piSensorNet["DataTables"]["dateFormatter"].Invoke());
                                    c.Actions(a =>
                                              {
                                                  a.Name("identify")
@@ -76,7 +78,7 @@
             <th>Friendly Name</th>
             <th>State</th>
             <th>Created</th>
-            <th></th>
+            <th>@*Actions*@</th>
         </tr>
         </thead>
         <tbody></tbody>

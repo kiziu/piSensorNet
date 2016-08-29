@@ -6,21 +6,17 @@
     },
 
     "compilationOptions": {
-        "nowarn": [ "NU1006" ],
+        "nowarn": ["NU1006"],
         "emitEntryPoint": false
     },
-    
+
     "webroot": "wwwroot",
 
     "exclude": [
         "wwwroot"
     ],
 
-    "packExclude": [
-        "**.kproj",
-        "**.user",
-        "**.vspscc"
-    ],
+    "contentFiles": ["../globalConfig.json", "config.json"],
 
     "commands": {
         "web": "Microsoft.AspNet.Server.Kestrel --server.urls http://*:8080"

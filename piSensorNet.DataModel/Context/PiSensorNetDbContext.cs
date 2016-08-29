@@ -19,6 +19,7 @@ using piSensorNet.DataModel.Entities.Base;
 using piSensorNet.DataModel.Extensions;
 
 [assembly: InternalsVisibleTo("piSensorNet.Tests")]
+[assembly: InternalsVisibleTo("piSensorNet.EngineTester")]
 
 namespace piSensorNet.DataModel.Context
 {

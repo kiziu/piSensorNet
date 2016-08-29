@@ -9,7 +9,7 @@ namespace piSensorNet.Web.Custom
     public static class Mapper
     {
         [NotNull]
-        public static ModuleListItemModel MapToListItem([NotNull] this Module o)
+        public static ModuleListItemModel ToListItem([NotNull] this Module o)
         {
             return new ModuleListItemModel
                    {
@@ -23,9 +23,15 @@ namespace piSensorNet.Web.Custom
         }
 
         [NotNull]
-        public static TriggerListItemModel MapToListItem([NotNull] this Trigger o)
+        public static TriggerListItemModel ToListItem([NotNull] this Trigger o)
         {
-            return new TriggerListItemModel();
+            return new TriggerListItemModel
+                   {
+                       ID = o.ID,
+                       FriendlyName = o.FriendlyName,
+                       Description = o.Description,
+                       Created = o.Created
+                   };
         }
 
         [NotNull]

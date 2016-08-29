@@ -1,0 +1,7 @@
+{
+    "profiles": {
+        "piSensorNet.HubTester": {
+            "commandName": "Project"
+        }
+    }
+}

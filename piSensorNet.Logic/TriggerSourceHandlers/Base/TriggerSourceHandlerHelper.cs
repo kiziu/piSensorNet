@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using piSensorNet.Common.Custom;
 using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Entities;
 using piSensorNet.Logic.Triggers;
@@ -14,9 +16,8 @@ namespace piSensorNet.Logic.TriggerSourceHandlers.Base
             
             var triggerSourceHandler = context.TriggerSourceHandlers[triggerSource.Type];
             var method = context.TriggerDelegates[triggerSource.TriggerID];
-            
-            var methodContext = new TriggerDelegateContext(context.TriggerDateTime);
 
+            var properties = new Dictionary<string, TypedObject>();
             foreach (var triggerDependency in trigger.TriggerDependencies)
             {
                 var triggerDependencyHandler = context.TriggerDependencyHandlers.GetValueOrDefault(triggerDependency.Type);
@@ -26,9 +27,11 @@ namespace piSensorNet.Logic.TriggerSourceHandlers.Base
                 if (triggerDependencyHandler.IsModuleIdentityRequired && !moduleID.HasValue)
                     continue;
 
-                triggerDependencyHandler.Handle(context.DatabaseContext, methodContext, moduleID);
+                properties.Add(triggerDependencyHandler.Handle(context.DatabaseContext, moduleID));
             }
             
+            var methodContext = new TriggerDelegateContext(context.TriggerDateTime, properties);
+
             method(methodContext);
 
             triggerSourceHandler?.Handle(context, triggerSource);

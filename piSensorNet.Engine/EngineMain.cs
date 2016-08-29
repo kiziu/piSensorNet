@@ -26,7 +26,6 @@ using piSensorNet.Logic.Triggers;
 using piSensorNet.Logic.TriggerSourceHandlers.Base;
 using Module = piSensorNet.DataModel.Entities.Module;
 using Timer = System.Timers.Timer;
-
 using static piSensorNet.Common.Helpers.LoggingHelper;
 
 [assembly: InternalsVisibleTo("piSensorNet.Tests")]
@@ -153,7 +152,6 @@ namespace piSensorNet.Engine
                                                         .AsNoTracking()
                                                         .Where(i => i.State == PartialPacketStateEnum.New)
                                                         .Any();
-
                     }
                 }
                 else
@@ -203,12 +201,12 @@ namespace piSensorNet.Engine
                 FunctionHandlers = cachedFunctionHandlers.Item1;
                 QueryableFunctionHandlers = cachedFunctionHandlers.Item2;
 
-                var cachedTriggerSources = CacheTriggerSources(context);
-                TriggerSources = cachedTriggerSources.Item1;
-                TriggerDelegates = cachedTriggerSources.Item2;
-
                 TriggerSourceHandlers = CacheTriggerSourceHandlers();
                 TriggerDependencyHandlers = CacheTriggerDependencyHandlers();
+
+                var cachedTriggerSources = CacheTriggerSources(context, TriggerDependencyHandlers);
+                TriggerSources = cachedTriggerSources.Item1;
+                TriggerDelegates = cachedTriggerSources.Item2;
             }
 
             ToConsole("BuildCache: Cache built!");
@@ -402,7 +400,7 @@ namespace piSensorNet.Engine
             return Tuple.Create(functionTypes.ReadOnly(), functionames.ReadOnly());
         }
 
-        internal static Tuple<IReadOnlyDictionary<TriggerSourceTypeEnum, IReadOnlyCollection<TriggerSource>>, IReadOnlyDictionary<int, TriggerDelegate>> CacheTriggerSources(PiSensorNetDbContext context)
+        internal static Tuple<IReadOnlyDictionary<TriggerSourceTypeEnum, IReadOnlyCollection<TriggerSource>>, IReadOnlyDictionary<int, TriggerDelegate>> CacheTriggerSources(PiSensorNetDbContext context, IReadOnlyDictionary<TriggerDependencyTypeEnum, ITriggerDependencyHandler> triggerDependencyHandlers)
         {
             // TODO KZ: test
             var triggerSources = context.TriggerSources
@@ -433,6 +431,15 @@ namespace piSensorNet.Engine
             var typedTriggerSources = triggerSources.GroupBy(i => i.Type)
                                                     .ToDictionary(i => i.ReadOnly());
 
+            var properties = new Dictionary<string, IReadOnlyDictionary<string, Type>>(1)
+                             {
+                                 {
+                                     nameof(TriggerDelegateContext.Properties),
+                                     triggerDependencyHandlers.SelectMany(i => i.Value.Properties)
+                                                              .ToDictionary()
+                                 }
+                             };
+
             var triggerDelegates = new Dictionary<int, TriggerDelegate>();
             foreach (var triggerSource in triggerSources)
             {
@@ -440,7 +447,7 @@ namespace piSensorNet.Engine
                 if (triggerDelegates.ContainsKey(trigger.ID))
                     continue;
 
-                var methodCompilationResult = CompileHelper.CompileTo<TriggerDelegate>(trigger.Content);
+                var methodCompilationResult = TriggerDelegateCompilerHelper.Compile(properties, trigger.Content);
                 if (!methodCompilationResult.IsSuccessful)
                 {
                     // ReSharper disable once AssignNullToNotNullAttribute
@@ -729,7 +736,7 @@ namespace piSensorNet.Engine
             if (serialProcessID.HasValue)
                 Signal.Send(serialProcessID.Value, SignalTypeEnum.User1);
         }
-        
+
         #region Signal Handlers
 
         private static void QuitSignalHandler(SignalTypeEnum signalType)

@@ -38,7 +38,7 @@ namespace piSensorNet.Web.Controllers.Manage
 
                 var entities = items.ToList();
 
-                var models = entities.Map(Mapper.MapToListItem);
+                var models = entities.Map(Mapper.ToListItem);
 
                 return Json(DataTablesJsonResultModel.Create(
                     query.Echo,

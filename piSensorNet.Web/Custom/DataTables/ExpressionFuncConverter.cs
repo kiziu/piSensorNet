@@ -153,7 +153,7 @@ namespace piSensorNet.Web.Custom.DataTables
 
                 var key = Guid.NewGuid().ToString("N");
 
-                _pairs.Add($"\"{key}\"", Common.Helpers.JsonSerializer.Serialize(value, DataTable.JsonConverters));
+                _pairs.Add($"\"{key}\"", Common.Helpers.JsonSerializer.Serialize(value, DataTable.JsonConverters.Value));
 
                 return Expression.Constant(key);
             }

@@ -15,6 +15,12 @@ namespace piSensorNet.Common.Extensions
                 action(item);
         }
 
+        public static void Each<TElement, TResult>([NotNull] this IEnumerable<TElement> items, [InstantHandle] [NotNull] Func<TElement, TResult> action)
+        {
+            foreach (var item in items)
+                action(item);
+        }
+
         public static void Each<TElement>([NotNull] this IEnumerable<TElement> items, [InstantHandle] [NotNull] Action<int, TElement> action)
         {
             var index = 0;
@@ -31,6 +37,20 @@ namespace piSensorNet.Common.Extensions
                                  }).
                      Where(i => memberPredicate(i.member))
                     .Select(i => i.item);
+
+        [NotNull]
+        public static IEnumerable<TElement> Recursive<TElement>([NotNull] this TElement item, [NotNull] Func<TElement, TElement> memberSelector, [NotNull] Func<TElement, bool> stopCondition)
+        {
+            while (true)
+            {
+                if (stopCondition(item))
+                    yield break;
+
+                yield return item;
+
+                item = memberSelector(item);
+            }
+        }
 
         [NotNull]
         public static HashSet<TElement> ToHashSet<TElement>([NotNull] this IEnumerable<TElement> source)
@@ -60,6 +80,10 @@ namespace piSensorNet.Common.Extensions
         [NotNull]
         public static Dictionary<TKey, List<TElement>> ToDictionary<TKey, TElement>([NotNull] this IEnumerable<IGrouping<TKey, TElement>> items)
             => items.ToDictionary(i => i.Key, i => i.ToList());
+
+        [NotNull]
+        public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>([NotNull] this IEnumerable<KeyValuePair<TKey, TValue>> items)
+            => items.ToDictionary(i => i.Key, i => i.Value);
 
         [NotNull]
         public static Dictionary<TKey, TElementList> ToDictionary<TKey, TElement, TElementList>([NotNull] this IEnumerable<IGrouping<TKey, TElement>> items, [InstantHandle] [NotNull] Func<List<TElement>, TElementList> listModificator)
@@ -98,6 +122,10 @@ namespace piSensorNet.Common.Extensions
 
         [NotNull]
         public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this IReadOnlyCollection<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+            => InternalMapArray(source, source.Count, mappingFunction);
+
+        [NotNull]
+        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this ICollection<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
             => InternalMapArray(source, source.Count, mappingFunction);
 
         [NotNull]
