@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace piSensorNet.WiringPi.Managed.Enums
+namespace piSensorNet.WiringPi.Enums
 {
     /// <summary>
     /// http://raspi.tv/wp-content/uploads/2014/07/Raspberry-Pi-GPIO-pinouts.png
@@ -48,7 +48,7 @@ namespace piSensorNet.WiringPi.Managed.Enums
     /// <summary>
     /// http://pi4j.com/images/j8header-2b-large.png
     /// </summary>
-    public enum WiringPiPinNumberEnum
+    public enum PinNumberEnum
     {
         Gpio0 = 0,
         //Pwm0 = Gpio0,
@@ -74,9 +74,9 @@ namespace piSensorNet.WiringPi.Managed.Enums
         Gpio9 = 9,
         I2C_SCL = Gpio9,
         Gpio10 = 10,
-        SPI_ChipEnable0 = Gpio10,
+        SPI_CE0 = Gpio10,
         Gpio11 = 11,
-        SPI_ChipEnable1 = Gpio11,
+        SPI_CE1 = Gpio11,
         Gpio12 = 12,
         SPI_MOSI = Gpio12,
         Gpio13 = 13,

@@ -1,16 +1,20 @@
 {
     "version": "1.0.0",
+
     "sdk": {
         "version": "1.0.0-rc1-final"
     },
+
     "compilationOptions": {
-        "nowarn": [ "NU1006" ]
+        "nowarn": ["NU1006"]
     },
+
     "frameworks": {
         "dnx451": {
             "frameworkAssemblies": {
                 "System.Data": "4.0.0.0"
             },
+
             "dependencies": {
                 "piSensorNet.Common": "1.0.0",
                 "piSensorNet.DataModel": "1.0.0",

@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace piSensorNet.WiringPi.Managed.Enums
+namespace piSensorNet.WiringPi.Enums
 {
     /*
         #define	INPUT			 0

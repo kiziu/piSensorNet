@@ -47,7 +47,7 @@ namespace {1}
         private static readonly ConcurrentDictionary<Type, string> Signatures
             = new ConcurrentDictionary<Type, string>();
 
-        private static readonly string IndentString = new String('\t', 4);
+        private static readonly string IndentString = new String(' ', 12);
         private static readonly string[] LineSeparators = {"\r\n", "\n"};
 
         internal static readonly int ErrorColumnOffset = -IndentString.Length;
@@ -93,7 +93,7 @@ namespace {1}
 
             var methodCode = PrepareMethodBody(body);
 
-            var usingSection = (usings ?? DefaultUsings).Select(i => $"using {i};").Join(Environment.NewLine);
+            var usingSection = DefaultUsings.Concat(usings ?? Enumerable.Empty<string>()).Distinct().OrderBy(i => i).Select(i => $"using {i};").Join(Environment.NewLine);
             var classCode = ClassPattern.AsFormatFor(usingSection, @namespace, className, signature, methodCode);
 
             var compilerParameters = new CompilerParameters
@@ -105,7 +105,7 @@ namespace {1}
                                          TreatWarningsAsErrors = false,
                                      };
 
-            (referencedAssemblies ?? DefaultReferencedAssemblies).Each(compilerParameters.ReferencedAssemblies.Add);
+            DefaultReferencedAssemblies.Concat(referencedAssemblies ?? Enumerable.Empty<string>()).Distinct().OrderBy(i => i).Each(compilerParameters.ReferencedAssemblies.Add);
 
             var result = CodeProvider.CompileAssemblyFromSource(compilerParameters, classCode);
             if (result.Errors.HasErrors)

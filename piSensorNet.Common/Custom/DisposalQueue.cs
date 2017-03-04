@@ -33,6 +33,7 @@ namespace piSensorNet.Common.Custom
             => GetEnumerator();
 
         [NotNull]
+        [ContractAnnotation(" => queue")]
         public static DisposalQueue operator +([NotNull] DisposalQueue queue, [NotNull] IDisposable item) 
             => queue.Enqueue(item);
     }

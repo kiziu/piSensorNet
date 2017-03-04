@@ -1,6 +1,6 @@
 {
     "Settings": {
-        "ConnectionString": "Server=192.168.1.2;Port=3306;Database=piSensorNet;Uid=db;Pwd=dbpassword;CharSet=utf8;",
+        "ConnectionString": "Server=192.168.13.2;Port=3306;Database=piSensorNet;Uid=db;Pwd=dbpassword;CharSet=utf8;",
         "BroadcastAddress": "eizik",
         "AddressPattern": "{0}izik",
         "PeriodUnitLengthInMs": "100",
@@ -12,7 +12,7 @@
         "FunctionResultDelimiter": ";",
         "FunctionResultValueDelimiter": "|",
         "SignalREngineFlagName": "iamengine",
-        "WebAddress": "http://localhost:8080/",
+        "WebAddress": "http://kiziepi:8080/",
         "SignalRHubName": "MainHub"
     }
 }

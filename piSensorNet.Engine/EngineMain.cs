@@ -8,7 +8,6 @@ using System.Threading;
 using System.Timers;
 using Microsoft.AspNet.SignalR.Client;
 using piSensorNet.Common;
-using piSensorNet.Common.Configuration;
 using piSensorNet.Common.Custom;
 using piSensorNet.Common.Custom.Interfaces;
 using piSensorNet.Common.Enums;
@@ -18,7 +17,6 @@ using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
 using piSensorNet.DataModel.Enums;
 using piSensorNet.Common.System;
-using piSensorNet.Logic.Compilation;
 using piSensorNet.Logic.Custom;
 using piSensorNet.Logic.FunctionHandlers.Base;
 using piSensorNet.Logic.TriggerDependencyHandlers.Base;
@@ -51,7 +49,7 @@ namespace piSensorNet.Engine
                 {SignalTypeEnum.HangUp, RedoCacheSignalHandler},
             };
 
-        private static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load("config.json");
+        private static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load<IpiSensorNetConfiguration>("config.json");
 
         private static volatile bool _doQuit;
         private static volatile bool _pollPartialPackets;
@@ -122,8 +120,8 @@ namespace piSensorNet.Engine
             //Demo(ModuleConfiguration, FunctionTypes, FunctionNames, FunctionHandlers, QueryableFunctionHandlers, TriggerSourceHandlers, TriggerDelegates, TriggerDependencyHandlers);
             //return 666;
 
-            DisposalQueue toDispose;
-            var hubProxy = InitializeHubConnection(Configuration, Configuration, InternalHandleMessage, ModuleAddresses, FunctionTypes, serialProcessID, out toDispose, ToConsole);
+            var toDispose = new DisposalQueue();
+            var hubProxy = InitializeHubConnection(Configuration, Configuration, InternalHandleMessage, ModuleAddresses, FunctionTypes, serialProcessID, toDispose, ToConsole);
 
             toDispose += Signal.Handle(SignalHandlers);
 
@@ -274,10 +272,8 @@ namespace piSensorNet.Engine
             return pid.Value;
         }
 
-        private static IHubProxy InitializeHubConnection(IReadOnlyConfiguration configuration, IpiSensorNetConfiguration moduleConfiguration, MessageHandler handler, IReadOnlyMap<string, int> moduleAddresses, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, out DisposalQueue toDispose, Action<string> logger)
+        private static IHubProxy InitializeHubConnection(IReadOnlyConfiguration configuration, IpiSensorNetConfiguration moduleConfiguration, MessageHandler handler, IReadOnlyMap<string, int> moduleAddresses, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, DisposalQueue toDispose, Action<string> logger)
         {
-            toDispose = new DisposalQueue();
-
             var hubConnection = new HubConnection(configuration["Settings:WebAddress"],
                 new Dictionary<string, string>
                 {
@@ -307,8 +303,7 @@ namespace piSensorNet.Engine
             catch (Exception e)
             {
                 logger($"InitializeHubConnection: ERROR: Exception occurred while initializing hub connection: {e.Message}.");
-
-                toDispose = null;
+                
                 return null;
             }
 

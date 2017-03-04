@@ -1,8 +1,14 @@
-/.vs/
+.vs/
 bin/
 obj/
-/piSensorNet.Web/wwwroot/lib/
+packages/
 
-project.lock.json
+piSensorNet.Web/wwwroot/lib/
+
 *.suo
 *.user
+*.log
+*.VC.db
+*.VC.opendb
+
+project.lock.json

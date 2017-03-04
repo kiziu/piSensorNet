@@ -10,7 +10,7 @@ using piSensorNet.Common.System;
 
 [assembly: InternalsVisibleTo("piSensorNet.Tests")]
 
-namespace piSensorNet.Common.Configuration
+namespace piSensorNet.Common.Custom
 {
     public static class ReadOnlyConfiguration
     {
@@ -19,7 +19,8 @@ namespace piSensorNet.Common.Configuration
         private static readonly ConcurrentDictionary<Type, Type> ConstructedTypes
             = new ConcurrentDictionary<Type, Type>();
 
-        public static IpiSensorNetConfiguration Load(params string[] configFiles)
+        public static TConfiguration Load<TConfiguration>(params string[] configFiles)
+            where TConfiguration : class
         {
             var builder = new ConfigurationBuilder()
                 .AddJsonFile("globalConfig.json", true) // windows
@@ -31,7 +32,7 @@ namespace piSensorNet.Common.Configuration
 
             var configuration = builder.Build();
 
-            return Proxify<IpiSensorNetConfiguration>(configuration);
+            return Proxify<TConfiguration>(configuration);
         }
 
         internal static TConfiguration Proxify<TConfiguration>(IConfiguration source)
@@ -47,7 +48,7 @@ namespace piSensorNet.Common.Configuration
         {
             // prepare names
             var typeName = $"Proxy_{configurationType.Name}";
-            var assemblyName = $"piSensorNet.Common.Configuration.Dynamic_{configurationType.Name}";
+            var assemblyName = $"piSensorNet.Common.Custom.Dynamic_{configurationType.Name}";
             var moduleName = "Main";
             
             var typeBuilder = PrepareTypeBuilder(assemblyName, moduleName, typeName);
@@ -196,7 +197,7 @@ namespace piSensorNet.Common.Configuration
                 CallingConventions.Standard | CallingConventions.HasThis,
                 new[] {Reflector.Instance<IConfiguration>.Type});
 
-            constructor.DefineParameter(0, ParameterAttributes.None, "configuration");
+            constructor.DefineParameter(1, ParameterAttributes.None, "configuration");
 
             var constructorCode = constructor.GetILGenerator();
 
@@ -250,6 +251,20 @@ namespace piSensorNet.Common.Configuration
                 constructorCode.Emit(OpCodes.Call, Reflector.Static.Method<IEnumerable<char>, char>(() => Enumerable.Single));
             else if (property.PropertyType == Reflector.Instance<Int32>.Type)
                 constructorCode.Emit(OpCodes.Call, Reflector.Static.Method<string, int>(() => int.Parse));
+            else if (property.PropertyType.IsEnum)
+            {
+                var str = constructorCode.DeclareLocal(Reflector.Instance<String>.Type);
+
+                constructorCode.Emit(OpCodes.Ldstr, property.PropertyType.Name + ".");
+                constructorCode.Emit(OpCodes.Ldstr, String.Empty);
+                constructorCode.Emit(OpCodes.Callvirt, Reflector.Instance<string>.Method<string, string, string>(s => s.Replace));
+                constructorCode.Emit(OpCodes.Stloc, str);
+                constructorCode.Emit(OpCodes.Ldstr, property.PropertyType.AssemblyQualifiedName);
+                constructorCode.Emit(OpCodes.Call, Reflector.Static.Method<string, Type>(() => Type.GetType));
+                constructorCode.Emit(OpCodes.Ldloc, str);
+                constructorCode.Emit(OpCodes.Call, Reflector.Static.Method<Type, string, object>(() => Enum.Parse));
+                constructorCode.Emit(OpCodes.Unbox_Any, property.PropertyType);
+            }
         }
     }
 }

@@ -21,6 +21,7 @@
                 "piSensorNet.Common": "1.0.0",
                 "piSensorNet.DataModel": "1.0.0",
                 "piSensorNet.Logic": "1.0.0",
+                "piSensorNet.Radio": "1.0.0",
                 "EntityFramework": "6.1.3",
                 "MySql.Data.Entity": "6.9.9",
                 "Microsoft.AspNet.SignalR.Client": "2.1.2"

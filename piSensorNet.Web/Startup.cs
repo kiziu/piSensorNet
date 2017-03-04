@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using piSensorNet.Common;
-using piSensorNet.Common.Configuration;
+using piSensorNet.Common.Custom;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.JsonConverters;
 using piSensorNet.Common.System;
@@ -19,14 +19,13 @@ using piSensorNet.DataModel.Entities;
 using piSensorNet.DataModel.Extensions;
 using piSensorNet.Web.Controllers;
 using Module = piSensorNet.DataModel.Entities.Module;
-
 using static piSensorNet.Common.Helpers.LoggingHelper;
 
 namespace piSensorNet.Web
 {
     public class Startup
     {
-        public static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load("config.json");
+        public static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load<IpiSensorNetConfiguration>("config.json");
         private static string ConnectionString => Configuration["Settings:ConnectionString"];
 
         public Startup()
@@ -38,14 +37,14 @@ namespace piSensorNet.Web
             ToConsole("Context initialized!");
 
             var debugProfile = Environment.GetEnvironmentVariable("DEBUG_PROFILE");
-            if (debugProfile != null)
+            if (debugProfile?.Equals("vs", StringComparison.InvariantCultureIgnoreCase) ?? false)
             {
                 var config = new ConfigurationBuilder().AddJsonFile("Properties/launchSettings.json").Build();
                 var url = config[$"profiles:{debugProfile}:launchUrl"];
 
                 Process.Start("chrome", url);
 
-                LoadDemoData(ConnectionString);
+                //LoadDemoData(ConnectionString);
             }
         }
 
@@ -76,18 +75,12 @@ namespace piSensorNet.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc()
-                    .AddJsonOptions(options =>
-                                    {
-                                        options.SerializerSettings.Converters.Add(new ExtendedEnumConverter());
-                                    });
+                    .AddJsonOptions(options => { options.SerializerSettings.Converters.Add(new ExtendedEnumConverter()); });
 
             services.AddTransient<Func<PiSensorNetDbContext>>(provider =>
                 () => PiSensorNetDbContext.Connect(ConnectionString));
 
-            services.AddSignalR(options =>
-                                {
-                                    options.Hubs.EnableDetailedErrors = true;
-                                });
+            services.AddSignalR(options => { options.Hubs.EnableDetailedErrors = true; });
         }
 
         public void Configure(IApplicationBuilder applicationBuilder, JsonSerializer jsonSerializer)

@@ -1,31 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using piSensorNet.Common.Custom;
 using piSensorNet.Common.Enums;
-using piSensorNet.Common.System;
 using piSensorNet.DataModel.Context;
 using piSensorNet.Logic.TriggerDependencyHandlers.Base;
 
 namespace piSensorNet.Logic.TriggerDependencyHandlers
 {
-    internal sealed class CommunicationTriggerDependencyHandler : ITriggerDependencyHandler
+    internal sealed class CommunicationTriggerDependencyHandler : BaseTriggerDependencyHandler<CommunicationTriggerDependencyHandler>
     {
-        private static readonly IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByAddress = null;
-        private static readonly IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByFriendlyName = null;
+        public override TriggerDependencyTypeEnum TriggerDependencyType { get; } = TriggerDependencyTypeEnum.Communication;
+        public override bool IsModuleIdentityRequired { get; } = false;
 
-        private static readonly Dictionary<string, Type> properties
-            = new Dictionary<string, Type>
-              {
-                  {nameof(LastTemperatureReadoutsByAddress), Reflector.Static.Field(() => LastTemperatureReadoutsByAddress).FieldType},
-                  {nameof(LastTemperatureReadoutsByFriendlyName), Reflector.Static.Field(() => LastTemperatureReadoutsByFriendlyName).FieldType},
-              };
-
-        public IReadOnlyDictionary<string, Type> Properties { get; } = properties;
-        public TriggerDependencyTypeEnum TriggerDependencyType { get; } = TriggerDependencyTypeEnum.Communication;
-        public bool IsModuleIdentityRequired { get; } = false;
-
-        public IReadOnlyDictionary<string, TypedObject> Handle(PiSensorNetDbContext context, int? moduleID)
+        public override IReadOnlyDictionary<string, object> Handle(PiSensorNetDbContext context, int? moduleID)
         {
             throw new NotImplementedException();
         }

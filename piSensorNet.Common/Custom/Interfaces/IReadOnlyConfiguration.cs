@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace piSensorNet.Common.Configuration
+namespace piSensorNet.Common.Custom.Interfaces
 {
     public interface IReadOnlyConfiguration
     {

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
-using piSensorNet.Common.Custom;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Context;
@@ -16,19 +15,11 @@ namespace piSensorNet.Logic.TriggerDependencyHandlers
         private IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByAddress;
         [UsedImplicitly]
         private IReadOnlyDictionary<string, decimal> LastTemperatureReadoutsByFriendlyName;
-
-        //private static readonly Dictionary<string, Type> properties
-        //    = new Dictionary<string, Type>
-        //      {
-        //          {nameof(LastTemperatureReadoutsByAddress), Reflector.Static.Field(() => LastTemperatureReadoutsByAddress).FieldType},
-        //          {nameof(LastTemperatureReadoutsByFriendlyName), Reflector.Static.Field(() => LastTemperatureReadoutsByFriendlyName).FieldType},
-        //      };
-
-        //public IReadOnlyDictionary<string, Type> Properties { get; } = properties;
+        
         public override TriggerDependencyTypeEnum TriggerDependencyType => TriggerDependencyTypeEnum.LastTemperatureReadout;
         public override bool IsModuleIdentityRequired => true;
 
-        public override IReadOnlyDictionary<string, TypedObject> Handle(PiSensorNetDbContext context, int? moduleID)
+        public override IReadOnlyDictionary<string, object> Handle(PiSensorNetDbContext context, int? moduleID)
         {
             // TODO KZ: check filtration performance
             var readouts = context.TemperatureReadouts

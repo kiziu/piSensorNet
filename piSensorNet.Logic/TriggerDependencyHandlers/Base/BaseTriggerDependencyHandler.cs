@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using piSensorNet.Common.Custom;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.System;
@@ -17,7 +16,7 @@ namespace piSensorNet.Logic.TriggerDependencyHandlers.Base
         // ReSharper disable once StaticMemberInGenericType
         private static readonly IReadOnlyDictionary<string, Type> properties;
 
-        private static readonly Func<BaseTriggerDependencyHandler<THandler>, IReadOnlyDictionary<string, TypedObject>> toProperties;
+        private static readonly Func<BaseTriggerDependencyHandler<THandler>, IReadOnlyDictionary<string, object>> toProperties;
 
         static BaseTriggerDependencyHandler()
         {
@@ -27,14 +26,14 @@ namespace piSensorNet.Logic.TriggerDependencyHandlers.Base
             {
                 var parameter = Expression.Parameter(Reflector.Instance<BaseTriggerDependencyHandler<THandler>>.Type, "instance");
                 var cast = Expression.Convert(parameter, Reflector.Instance<THandler>.Type);
-                var dictionary = Expression.Variable(Reflector.Instance<Dictionary<string, TypedObject>>.Type, "result");
+                var dictionary = Expression.Variable(Reflector.Instance<Dictionary<string, object>>.Type, "result");
                 var assign = Expression.Assign(
                     dictionary,
-                    Expression.New(Reflector.Instance<Dictionary<string, TypedObject>>.Constructor<int>(),
+                    // ReSharper disable once AssignNullToNotNullAttribute
+                    Expression.New(Reflector.Instance<Dictionary<string, object>>.Constructor<int>(),
                         Expression.Constant(fields.Length)));
 
-                var addMethod = Reflector.Instance<Dictionary<string, TypedObject>>.Method<string, TypedObject>(i => i.Add);
-                var typedObjectCreator = Reflector.Static.Method<object, Type, TypedObject>(() => TypedObject.Create);
+                var addMethod = Reflector.Instance<Dictionary<string, object>>.Method<string, object>(i => i.Add);
                 var block = Expression.Block(new[] {dictionary},
                     new List<Expression>
                     {
@@ -42,14 +41,12 @@ namespace piSensorNet.Logic.TriggerDependencyHandlers.Base
                         fields.Select(i =>
                             Expression.Call(dictionary, addMethod,
                                 Expression.Constant(i.Name),
-                                Expression.Call(typedObjectCreator,
-                                    Expression.Field(cast, i),
-                                    Expression.Constant(i.FieldType))))
+                                Expression.Field(cast, i)))
                               .Cast<Expression>(),
                         dictionary,
                     });
 
-                toProperties = Expression.Lambda<Func<BaseTriggerDependencyHandler<THandler>, IReadOnlyDictionary<string, TypedObject>>>(block, parameter)
+                toProperties = Expression.Lambda<Func<BaseTriggerDependencyHandler<THandler>, IReadOnlyDictionary<string, object>>>(block, parameter)
                                          .Compile();
             }
         }
@@ -58,12 +55,9 @@ namespace piSensorNet.Logic.TriggerDependencyHandlers.Base
 
         public abstract TriggerDependencyTypeEnum TriggerDependencyType { get; }
         public abstract bool IsModuleIdentityRequired { get; }
-        public abstract IReadOnlyDictionary<string, TypedObject> Handle(PiSensorNetDbContext context, int? moduleID);
-
-        //protected IReadOnlyDictionary<string, TypedObject> ToProperties() 
-        //    => fields.ToDictionary(i => i.Name, i => i.GetValue(this).ToTyped(i.FieldType));
-
-        protected IReadOnlyDictionary<string, TypedObject> ToProperties()
+        public abstract IReadOnlyDictionary<string, object> Handle(PiSensorNetDbContext context, int? moduleID);
+        
+        protected IReadOnlyDictionary<string, object> ToProperties()
             => toProperties(this);
     }
 }

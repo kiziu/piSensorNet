@@ -6,7 +6,7 @@ namespace piSensorNet.WiringPi.Unmanaged
 {
     internal static class Configuration
     {
-        [DllImport(Constants.LibraryPath, EntryPoint = "wiringPiSetup", SetLastError = true)]
+        [DllImport(Constants.LibraryPath, EntryPoint = "wiringPiSetup")]
         public static extern int Setup();
     }
 }

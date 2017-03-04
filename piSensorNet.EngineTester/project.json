@@ -7,7 +7,7 @@
 
     "compilationOptions": {
         "emitEntryPoint": true,
-        "nowarn": [ "NU1006" ]
+        "nowarn": ["NU1006"]
     },
 
     "contentFiles": ["../globalConfig.json", "../piSensorNet.Engine/config.json"],

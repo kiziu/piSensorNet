@@ -1,0 +1,10 @@
+﻿{
+    "Settings": {
+        "InterruptPin": "PinNumberEnum.Gpio1",
+        "ChipEnablePin": "PinNumberEnum.Gpio0",
+        "SpiChannel": "SpiChannelEnum.One",
+        
+        "HubAddress": "kiziu",
+        "BroadcastAddress": "kizie"
+    }
+}

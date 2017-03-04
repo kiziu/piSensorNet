@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using piSensorNet.Common.Configuration;
+using piSensorNet.Common.Custom.Interfaces;
 
 namespace piSensorNet.Common
 {

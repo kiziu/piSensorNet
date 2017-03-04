@@ -9,6 +9,6 @@ namespace piSensorNet.WiringPi.Unmanaged
 
     internal static class Constants
     {
-        public const string LibraryPath = "/usr/local/lib/libwiringPi.so";
+        public const string LibraryPath = "libwiringPi.so";
     }
 }

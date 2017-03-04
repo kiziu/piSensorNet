@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.SignalR.Client;
 using Newtonsoft.Json;
-using piSensorNet.Common.Configuration;
 using piSensorNet.Common.Custom;
+using piSensorNet.Common.Custom.Interfaces;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.JsonConverters;
@@ -17,7 +17,7 @@ namespace piSensorNet.HubTester
 
     public static class TesterMain
     {
-        private static IReadOnlyConfiguration Configuration { get; } = ReadOnlyConfiguration.Load();
+        private static IReadOnlyConfiguration Configuration { get; } = ReadOnlyConfiguration.Load<IReadOnlyConfiguration>();
         
         public static int Main(string[] args)
         {

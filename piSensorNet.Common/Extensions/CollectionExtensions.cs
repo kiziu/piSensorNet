@@ -154,5 +154,27 @@ namespace piSensorNet.Common.Extensions
 
             return result;
         }
+
+        [NotNull]
+        public static T[] Zero<T>([NotNull] this T[] array)
+        {
+            for (var i = 0; i < array.Length; ++i)
+                array[i] = default(T);
+
+            return array;
+        }
+
+        [NotNull]
+        public static T[] Reverse<T>([NotNull] this T[] array)
+        {
+            var length = array.Length;
+
+            var result = new T[length];
+
+            for (var i = 0; i < length; ++i)
+                result[i] = array[length - i - 1];
+
+            return result;
+        }
     }
 }

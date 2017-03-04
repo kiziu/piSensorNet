@@ -6,7 +6,7 @@ using Microsoft.AspNet.SignalR.Client.Hubs;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using piSensorNet.Common;
-using piSensorNet.Common.Configuration;
+using piSensorNet.Common.Custom;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.Helpers;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
@@ -23,7 +23,7 @@ namespace piSensorNet.Tests
 
     internal static class Common
     {
-        public static readonly IpiSensorNetConfiguration Configuration = ReadOnlyConfiguration.Load("config.json");
+        public static readonly IpiSensorNetConfiguration Configuration = ReadOnlyConfiguration.Load<IpiSensorNetConfiguration>("config.json");
         public static readonly ITestsConfiguration TestsConfiguration = ReadOnlyConfiguration.Proxify<ITestsConfiguration>((IConfiguration)Configuration.GetType().GetField("Configuration").GetValue(Configuration));
 
         public static readonly Action<string> ConsoleLogger = LoggingHelper.ToConsole;

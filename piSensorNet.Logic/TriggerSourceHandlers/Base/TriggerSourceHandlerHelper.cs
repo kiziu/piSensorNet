@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using piSensorNet.Common.Custom;
 using piSensorNet.Common.Extensions;
 using piSensorNet.DataModel.Entities;
 using piSensorNet.Logic.Triggers;
@@ -17,7 +16,7 @@ namespace piSensorNet.Logic.TriggerSourceHandlers.Base
             var triggerSourceHandler = context.TriggerSourceHandlers[triggerSource.Type];
             var method = context.TriggerDelegates[triggerSource.TriggerID];
 
-            var properties = new Dictionary<string, TypedObject>();
+            var properties = new Dictionary<string, object>();
             foreach (var triggerDependency in trigger.TriggerDependencies)
             {
                 var triggerDependencyHandler = context.TriggerDependencyHandlers.GetValueOrDefault(triggerDependency.Type);

@@ -13,6 +13,6 @@ namespace piSensorNet.Logic.TriggerDependencyHandlers.Base
         TriggerDependencyTypeEnum TriggerDependencyType { get; }
         bool IsModuleIdentityRequired { get; }
 
-        IReadOnlyDictionary<string, TypedObject> Handle(PiSensorNetDbContext context, int? moduleID);
+        IReadOnlyDictionary<string, object> Handle(PiSensorNetDbContext context, int? moduleID);
     }
 }

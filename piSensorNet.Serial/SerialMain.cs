@@ -7,16 +7,15 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using piSensorNet.Common;
-using piSensorNet.Common.Configuration;
 using piSensorNet.Common.Custom;
+using piSensorNet.Common.Custom.Interfaces;
 using piSensorNet.Common.Enums;
 using piSensorNet.Common.Extensions;
 using piSensorNet.Common.System;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
-using piSensorNet.WiringPi.Managed;
-using piSensorNet.WiringPi.Managed.Enums;
-
+using piSensorNet.WiringPi.Enums;
+using piSensorNet.WiringPi;
 using static piSensorNet.Common.Helpers.LoggingHelper;
 
 [assembly: InternalsVisibleTo("piSensorNet.Tests")]
@@ -35,7 +34,7 @@ namespace piSensorNet.Serial
                 {SignalTypeEnum.User1, NeMessageToSendSignalHandler},
             };
 
-        private static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load("config.json");
+        private static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load<IpiSensorNetConfiguration>("config.json");
 
         private static int? _lastMessageSentID;
 
@@ -63,11 +62,11 @@ namespace piSensorNet.Serial
 
             toDispose += Signal.Handle(SignalHandlers);
 
-            Pi.Serial.Open();
+            Functionalities.Serial.Open();
 
-            Pi.Pins.Setup(BroadcomPinNumberEnum.Gpio18, PinModeEnum.Input, PullUpModeEnum.Up);
+            Functionalities.Pins.Setup(BroadcomPinNumberEnum.Gpio18, PinModeEnum.Input, PullUpModeEnum.Up);
 
-            toDispose += Pi.Interrupts.SetupPolled(BroadcomPinNumberEnum.Gpio18, InterruptModeEnum.FallingEdge, SerialInterruptHandler);
+            toDispose += Functionalities.Interrupts.SetupPolled(BroadcomPinNumberEnum.Gpio18, InterruptModeEnum.FallingEdge, SerialInterruptHandler);
 
             ToConsole("Main: Started!");
 
@@ -103,10 +102,10 @@ namespace piSensorNet.Serial
             
             toDispose.Dispose();
 
-            Pi.Interrupts.Remove(BroadcomPinNumberEnum.Gpio18);
+            Functionalities.Interrupts.Remove(BroadcomPinNumberEnum.Gpio18);
 
-            Pi.Serial.Flush();
-            Pi.Serial.Close();
+            Functionalities.Serial.Flush();
+            Functionalities.Serial.Close();
 
             ToConsole("Main: Stopped!");
 
@@ -136,15 +135,15 @@ namespace piSensorNet.Serial
         {
             var read = false;
 
-            var availableCharacters = Pi.Serial.GetAvailableDataCount();
+            var availableCharacters = Functionalities.Serial.GetAvailableDataCount();
             while (availableCharacters > 0)
             {
                 read = true;
 
                 for (var i = 0; i < availableCharacters; ++i)
                 {
-                    var readCharacter = Pi.Serial.Get();
-                    if (readCharacter == Pi.Serial.Terminator)
+                    var readCharacter = Functionalities.Serial.Get();
+                    if (readCharacter == Functionalities.Serial.Terminator)
                     {
                         var item = buffer.ToString();
 
@@ -162,7 +161,7 @@ namespace piSensorNet.Serial
                     buffer.Append(readCharacter);
                 }
 
-                availableCharacters = Pi.Serial.GetAvailableDataCount();
+                availableCharacters = Functionalities.Serial.GetAvailableDataCount();
             }
 
             return read;
@@ -308,7 +307,7 @@ namespace piSensorNet.Serial
 
             logger($"SendMessage: Putting '{text}'..."); // <0.5ms
 
-            Pi.Serial.Put(text);
+            Functionalities.Serial.Put(text);
             
             using (var context = PiSensorNetDbContext.Connect(moduleConfiguration.ConnectionString))
             {

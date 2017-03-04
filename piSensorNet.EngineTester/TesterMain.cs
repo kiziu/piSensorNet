@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using piSensorNet.Common;
-using piSensorNet.Common.Configuration;
+using piSensorNet.Common.Custom;
 using piSensorNet.Common.Enums;
 using piSensorNet.DataModel.Context;
 using piSensorNet.DataModel.Entities;
@@ -11,7 +11,7 @@ namespace piSensorNet.EngineTester
 {
     public class TesterMain
     {
-        private static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load();
+        private static IpiSensorNetConfiguration Configuration { get; } = ReadOnlyConfiguration.Load<IpiSensorNetConfiguration>();
 
         public static int Main(string[] args)
         {
@@ -34,6 +34,9 @@ namespace piSensorNet.EngineTester
                                                        new TriggerSource(0, TriggerSourceTypeEnum.AbsoluteTime)
                                                        {
                                                            AbsoluteTime = TimeSpan.Parse("12:13:21")
+                                                       },
+                                                       new TriggerSource(0, TriggerSourceTypeEnum.TemperatureReadout)
+                                                       {
                                                        }
                                                    },
                                   TriggerDependencies = new[]

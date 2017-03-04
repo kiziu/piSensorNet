@@ -1,0 +1,25 @@
+﻿{
+    "version": "1.0.0",
+
+    "sdk": {
+        "version": "1.0.0-rc1-final"
+    },
+
+    "compilationOptions": {
+        "nowarn": ["NU1006"]
+    },
+
+    "contentFiles": ["../globalConfig.json", "config.json"],
+
+    "frameworks": {
+        "dnx451": {
+            "frameworkAssemblies": {
+                "System.Data": "4.0.0.0"
+            },
+            "dependencies": {
+                "piSensorNet.WiringPi": "1.0.0",
+                "piSensorNet.Common": "1.0.0"
+            }
+        }
+    }
+}

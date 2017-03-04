@@ -14,21 +14,38 @@ namespace piSensorNet.Logic.Triggers
         private const string Namespace = "piSensorNet.Logic.Compilation.UserFunctions";
         private const string MethodName = "Run";
 
+        private static readonly IReadOnlyCollection<string> Usings 
+            = new[]
+              {
+                  Reflector.Instance<TriggerDelegateContext>.Type.Namespace,
+              };
+
+        private static readonly IReadOnlyCollection<string> ReferencedAssemblies 
+            = new[]
+              {
+                  Reflector.Instance<TriggerDelegateContext>.Type.Assembly.Location,
+              };
+
         private static readonly MethodInfo DelegateMethod = TypeExtensions.GetDelegateMethod(Reflector.Instance<TriggerDelegate>.Type);
+
+        private static readonly IReadOnlyDictionary<ParameterInfo, IReadOnlyCollection<PropertyInfo>> DelegateMethodParameters
+            = DelegateMethod.GetParameters()
+                            .ToDictionary(i => i,
+                                i => i.ParameterType.GetProperties(BindingFlags.Public | BindingFlags.Instance).ReadOnly());
 
         private static string GenerateExplosionCode(IReadOnlyDictionary<string, IReadOnlyDictionary<string, Type>> properties)
         {
             var builder = new StringBuilder();
 
-            foreach (var parameter in DelegateMethod.GetParameters())
-                foreach (var parameterProperty in parameter.ParameterType.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var parameter in DelegateMethodParameters)
+                foreach (var parameterProperty in parameter.Value)
                 {
                     if (!properties.ContainsKey(parameterProperty.Name))
                     {
                         builder.Append("var ");
                         builder.Append(parameterProperty.Name);
                         builder.Append(" = ");
-                        builder.Append(parameter.Name);
+                        builder.Append(parameter.Key.Name);
                         builder.Append('.');
                         builder.Append(parameterProperty.Name);
                         builder.Append(';');
@@ -39,15 +56,21 @@ namespace piSensorNet.Logic.Triggers
 
                     foreach (var property in properties[parameterProperty.Name])
                     {
-                        builder.Append(property.Value.GetProperName());
-                        builder.Append(' ');
+                        builder.Append("var ");
                         builder.Append(property.Key);
                         builder.Append(" = ");
-                        builder.Append(parameter.Name);
+                        builder.Append('(');
+                        builder.Append(property.Value.GetProperName());
+                        builder.Append(')');
+                        builder.Append(' ');
+                        builder.Append(parameter.Key.Name);
                         builder.Append('.');
                         builder.Append(parameterProperty.Name);
-                        builder.Append('.');
+                        builder.Append('[');
+                        builder.Append('"');
                         builder.Append(property.Key);
+                        builder.Append('"');
+                        builder.Append(']');
                         builder.Append(';');
                         builder.AppendLine();
                     }
@@ -62,7 +85,8 @@ namespace piSensorNet.Logic.Triggers
 
             body = GenerateExplosionCode(properties) + Environment.NewLine + body;
 
-            var result = CompileHelper.CompileTo<TriggerDelegate>(Namespace, className, MethodName, body);
+            var result = CompileHelper.CompileTo<TriggerDelegate>(Namespace, className, MethodName, body,
+                ReferencedAssemblies, Usings);
 
             return result;
         }
