@@ -3,7 +3,8 @@ bin/
 obj/
 packages/
 
-piSensorNet.Web/wwwroot/lib/
+/piSensorNet.Web/wwwroot/lib/
+/debug/
 
 *.suo
 *.user

@@ -49,7 +49,7 @@ namespace piSensorNet.Logic.FunctionHandlers
                         MethodBase.GetCurrentMethod().GetFullName(),
                         $"Unknown function '{functionName}' received in th list.");
 
-                function = function ?? new Function(functionName, FunctionTypeEnum.Unknown, false);
+                function = function ?? new Function(FunctionTypeEnum.Unknown, false);
 
                 context.DatabaseContext.ModuleFunctions.Add(new ModuleFunction(module, function));
 

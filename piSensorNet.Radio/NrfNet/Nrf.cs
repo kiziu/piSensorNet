@@ -1,5 +1,8 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using JetBrains.Annotations;
+using piSensorNet.Common.Extensions;
 using piSensorNet.Radio.NrfNet.Enums;
 using piSensorNet.Radio.NrfNet.Registers;
 using piSensorNet.WiringPi;
@@ -7,10 +10,10 @@ using piSensorNet.WiringPi.Enums;
 
 namespace piSensorNet.Radio.NrfNet
 {
-    public class Nrf : IDisposable
+    public sealed class Nrf : IDisposable
     {
-        public const int AddressSize = 5; // just for clarity, do not change
-        public const int PayloadSize = 32; // just for clarity, do not change
+        public const int AddressSize = 5;
+        public const int PayloadSize = 32;
 
         public const int DefaultSpiSpeed = 8000000;
 
@@ -31,6 +34,12 @@ namespace piSensorNet.Radio.NrfNet
         public TransceiverModeEnum Mode { get; private set; }
         public ulong Frequency { get; private set; }
 
+        public bool IsConnected => !Exchange(NOP, null).IsEqualTo(byte.MinValue, byte.MaxValue);
+
+        [SuppressMessage("ReSharper", "UnusedMember.Local")]
+        private static void Debug(string text)
+            => Console.WriteLine($"### {DateTime.Now.ToFullTimeString()}: {text}");
+
         public Nrf(PinNumberEnum chipEnable, SpiChannelEnum channel, int spiSpeed = DefaultSpiSpeed)
         {
             _channel = channel;
@@ -41,7 +50,9 @@ namespace piSensorNet.Radio.NrfNet
 
             Functionalities.Spi.Setup(_channel, spiSpeed);
 
-            var general = (GeneralRegister)ReadRegister(RegisterEnum.General);
+            Functionalities.Sleep.Milli(5);
+
+            var general = (ConfigurationRegister)ReadRegister(RegisterEnum.Configuration);
             var frequency = (FrequencyChannelRegister)ReadRegister(RegisterEnum.FrequencyChannel);
 
             State = general.PowerState;
@@ -56,9 +67,15 @@ namespace piSensorNet.Radio.NrfNet
         public void SetupDelay()
             => Functionalities.Sleep.Milli(100);
 
-        public StatusRegister WriteRegister(IRegister register)
-            => WriteRegister(register.Type, register.Value);
+        [NotNull]
+        public StatusRegister WriteRegister([NotNull] IRegister register)
+        {
+            if (register == null) throw new ArgumentNullException(nameof(register));
 
+            return WriteRegister(register.Type, register.Value);
+        }
+
+        [NotNull]
         public StatusRegister WriteRegister(RegisterEnum register, byte value)
         {
             _tinyBuffer[0] = value;
@@ -72,8 +89,8 @@ namespace piSensorNet.Radio.NrfNet
                     Frequency = ((FrequencyChannelRegister)value).Frequency;
                     break;
 
-                case RegisterEnum.General:
-                    var general = (GeneralRegister)value;
+                case RegisterEnum.Configuration:
+                    var general = (ConfigurationRegister)value;
 
                     if (State != general.PowerState) // transition
                         if (State == PowerStateEnum.Down) // from down to up
@@ -115,8 +132,10 @@ namespace piSensorNet.Radio.NrfNet
         public byte ReadRegister(RegisterEnum register)
             => ReadRegister(register, out _dummyStatusRegister);
 
-        public byte ModifyRegister(RegisterEnum register, Func<byte, byte> action, out StatusRegister statusRegister)
+        public byte ModifyRegister(RegisterEnum register, [NotNull] Func<byte, byte> action, out StatusRegister statusRegister)
         {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
             var readValue = ReadRegister(register, out statusRegister);
             var setValue = action(readValue);
 
@@ -129,13 +148,16 @@ namespace piSensorNet.Radio.NrfNet
         public byte ModifyRegister(RegisterEnum register, Func<byte, byte> action)
             => ModifyRegister(register, action, out _dummyStatusRegister);
 
-        public TRegister ModifyRegister<TRegister>(RegisterEnum register, Action<TRegister> action, out StatusRegister statusRegister)
+        [NotNull]
+        public TRegister ModifyRegister<TRegister>(RegisterEnum register, [NotNull] Action<TRegister> action, out StatusRegister statusRegister)
             where TRegister : IRegister
         {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
             var readByteValue = ReadRegister(register, out statusRegister);
-            var registerValue = (TRegister)(object)readByteValue;
+            var registerValue = (TRegister)(dynamic)readByteValue;
             action(registerValue);
-            var setByteValue = (byte)(object)registerValue;
+            var setByteValue = (byte)(dynamic)registerValue;
 
             if (setByteValue != readByteValue)
                 statusRegister = WriteRegister(register, setByteValue);
@@ -143,107 +165,101 @@ namespace piSensorNet.Radio.NrfNet
             return registerValue;
         }
 
+        [NotNull]
         public TRegister ModifyRegister<TRegister>(RegisterEnum register, Action<TRegister> action)
             where TRegister : IRegister
             => ModifyRegister(register, action, out _dummyStatusRegister);
 
+        [NotNull]
         public StatusRegister WriteCommand(CommandEnum command)
             => Exchange((byte)command, null);
 
+        [NotNull]
         public StatusRegister Flush()
         {
             ClearInterrupts();
 
             WriteCommand(CommandEnum.FlushReceiveQueue);
-            var status = WriteCommand(CommandEnum.FlushTransmitQueue);
 
-            return status;
+            return WriteCommand(CommandEnum.FlushTransmitQueue);
         }
 
+        [NotNull]
         public StatusRegister ClearInterrupts()
-            => WriteRegister(new StatusRegister(true, true, true, 0, false));
+            => WriteRegister(new StatusRegister(true, true, true));
 
-        public byte[] ReadPayload(byte[] buffer = null)
+        [NotNull]
+        public byte[] ReadPayload([CanBeNull] byte[] buffer = null)
         {
             var payload = buffer ?? new byte[PayloadSize];
 
-            Exchange((byte)CommandEnum.ReadReceivedPayload, payload);
+            Exchange((byte)CommandEnum.ReadPayload, payload);
 
             ClearInterrupts();
 
             return payload;
         }
 
-        public bool WritePayload(byte[] payload, bool waitForSuccess, bool continuousOperation = false)
+        public bool WritePayload([NotNull] byte[] payload, bool withAcknowledge, bool readRetransmissionsCount, out byte retransmissionsCount)
         {
-            if (payload.Length > PayloadSize)
-                throw new ArgumentException($"Payload size {payload.Length} is greater than maximum of {PayloadSize}.", nameof(payload));
+            if (payload == null) throw new ArgumentNullException(nameof(payload));
+            if (payload.Length > PayloadSize) throw new ArgumentException($"Payload size {payload.Length} is greater than maximum of {PayloadSize}.", nameof(payload));
 
             if (Mode != TransceiverModeEnum.Transmitter)
-                ModifyRegister(RegisterEnum.General, i =>
-                                                     {
-                                                         var r = (GeneralRegister)i;
+                ModifyRegister(RegisterEnum.Configuration, i =>
+                                                           {
+                                                               var r = (ConfigurationRegister)i;
 
-                                                         r.TransceiverMode = TransceiverModeEnum.Transmitter;
+                                                               r.TransceiverMode = TransceiverModeEnum.Transmitter;
 
-                                                         return r;
-                                                     });
+                                                               return r;
+                                                           });
 
-            // needed?
-            WriteCommand(CommandEnum.FlushTransmitQueue); // something about sending this and below with READ instead of write, see datasheet
-
-            var command = waitForSuccess ? CommandEnum.WriteTransmittedPayload : CommandEnum.WriteTransmittedPayloadWithoutAcknowledge;
+            var command = withAcknowledge ? CommandEnum.WritePayload : CommandEnum.WritePayloadNoAcknowledge;
             Exchange((byte)command, payload, true);
 
             Functionalities.Pins.Write(_chipEnable, true);
+            Functionalities.Sleep.Micro(15);
+            Functionalities.Pins.Write(_chipEnable, false);
 
             // TX setting
 
-            // Functionalities.Sleep.Micro(130);
-
             // TX mode (after Transmitter mode, data in TX FIF0, CE pulsed high)
 
-            if (!waitForSuccess)
-            {
-                if (!continuousOperation)
-                    Functionalities.Pins.Write(_chipEnable, false);
+            StatusRegister status;
+            while (!((status = ReadRegister(RegisterEnum.Status)).DataSent || status.RetransmitLimitReached)) {}
 
+            // Standby I
+
+            status = ClearInterrupts();
+            if (status.RetransmitLimitReached)
+            {
+                WriteCommand(CommandEnum.FlushTransmitQueue);
+
+                retransmissionsCount = byte.MaxValue;
+
+                return false;
+            }
+
+            if (!readRetransmissionsCount)
+            {
+                retransmissionsCount = 0;
                 return true;
             }
 
-            StatusRegister status;
-            while (!(status = ReadRegister(RegisterEnum.Status)).DataSent)
-            {
-                if (status.RetransmitLimitReached)
-                {
-                    WriteCommand(CommandEnum.FlushTransmitQueue);
-
-                    Functionalities.Pins.Write(_chipEnable, false);
-
-                    return false;
-                }
-
-                Functionalities.Sleep.Micro(50);
-            }
-
-            if (!continuousOperation)
-                Functionalities.Pins.Write(_chipEnable, false);
-
-            // Standby I
+            var observeRegister = (TransmitObserveRegister)ReadRegister(RegisterEnum.TransmitObserve);
+            retransmissionsCount = observeRegister.RetransmittedPacketCount;
 
             return true;
         }
 
-        public byte ReadPayloadSize(int pipeNumber)
+        public byte ReadPayloadSize(byte pipeNumber)
         {
-            if (0 > pipeNumber || pipeNumber > 5)
-                throw new ArgumentOutOfRangeException(nameof(pipeNumber));
+            if (pipeNumber > 5) throw new ArgumentOutOfRangeException(nameof(pipeNumber));
 
-            var pipeReceivedPayloadSizeRegister = (RegisterEnum)(byte)((byte)RegisterEnum.Pipe0PayloadSize + (byte)pipeNumber);
+            var pipePayloadSizeRegister = pipeNumber.PipePayloadSizeRegister();
 
-            var payloadSize = ReadRegister(pipeReceivedPayloadSizeRegister);
-
-            return payloadSize;
+            return ReadRegister(pipePayloadSizeRegister);
         }
 
         public void SetTransmitAddress(Address address, bool withAcknowledge)
@@ -260,62 +276,46 @@ namespace piSensorNet.Radio.NrfNet
 
             _lastTransmitAddress = address;
 
-            var bufferOut = (byte[])address;
-
-            Exchange(writeTransmitAddress, bufferOut, true);
-
             if (withAcknowledge)
                 SetAcknowledgeAddress(address);
+
+            Exchange(writeTransmitAddress, address.Bytes, true);
         }
 
-        public StatusRegister SetPipeReceiveAddress(byte pipeNumber, Address address)
-        {
-            if (pipeNumber >= 2)
-                throw new ArgumentOutOfRangeException(nameof(pipeNumber));
+        [NotNull]
+        public StatusRegister SetPipeReceiveAddress(byte pipeNumber, [NotNull] Address address)
+            => InternalSetPipeReceiveAddress(pipeNumber, address, true);
 
-            var pipeRegister = pipeNumber.PipeAddressRegister();
-            var writeReceiveAddress = (byte)((byte)CommandEnum.WriteRegister | (byte)pipeRegister);
-
-            _pipeAddresses[pipeNumber] = address;
-
-            var bufferOut = (byte[])address;
-
-            var status = Exchange(writeReceiveAddress, bufferOut, true);
-
-            return status;
-        }
-
+        [NotNull]
         public StatusRegister SetPipeReceiveAddress(byte pipeNumber, byte addressLeastSignificantByte)
         {
-            if (pipeNumber < 2 || 5 < pipeNumber)
-                throw new ArgumentOutOfRangeException(nameof(pipeNumber));
-
-            if (_pipeAddresses[1] == null)
-                throw new InvalidOperationException("Address for pipe 1 must be set first.");
+            if (pipeNumber < 2 || 5 < pipeNumber) throw new ArgumentOutOfRangeException(nameof(pipeNumber));
+            if (_pipeAddresses[1] == null) throw new InvalidOperationException("Address for pipe 1 must be set first.");
 
             _pipeAddresses[pipeNumber] = new Address(_pipeAddresses[1], addressLeastSignificantByte);
 
-            var writeReceiveAddress = (RegisterEnum)((byte)CommandEnum.WriteRegister | (byte)pipeNumber.PipeAddressRegister());
+            var pipeAddressRegister = pipeNumber.PipeAddressRegister();
+            var writeReceiveAddress = (RegisterEnum)((byte)CommandEnum.WriteRegister | (byte)pipeAddressRegister);
 
-            var status = WriteRegister(writeReceiveAddress, addressLeastSignificantByte);
-
-            return status;
+            return WriteRegister(writeReceiveAddress, addressLeastSignificantByte);
         }
 
         public void ConfigureInterrupt(PinNumberEnum pin, bool receiveInterruptEnabled,
             bool transmitInterruptEnabled, bool retransmitLimitReachedInterruptEnabled,
-            Action<Nrf, byte?> handler)
+            [NotNull] Action<Nrf, byte?> handler)
         {
-            ModifyRegister(RegisterEnum.General, i =>
-                                                 {
-                                                     var r = (GeneralRegister)i;
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-                                                     r.ReceiveInterruptEnabled = receiveInterruptEnabled;
-                                                     r.TransmitInterruptEnabled = transmitInterruptEnabled;
-                                                     r.RetransmitLimitReachedInterruptEnabled = retransmitLimitReachedInterruptEnabled;
+            ModifyRegister(RegisterEnum.Configuration, i =>
+                                                       {
+                                                           var r = (ConfigurationRegister)i;
 
-                                                     return r;
-                                                 });
+                                                           r.ReceiveInterruptEnabled = receiveInterruptEnabled;
+                                                           r.TransmitInterruptEnabled = transmitInterruptEnabled;
+                                                           r.RetransmitLimitReachedInterruptEnabled = retransmitLimitReachedInterruptEnabled;
+
+                                                           return r;
+                                                       });
 
             Functionalities.Pins.Setup(pin, PinModeEnum.Input, PullUpModeEnum.Up);
             Functionalities.Interrupts.Setup(pin, InterruptModeEnum.FallingEdge, () =>
@@ -328,46 +328,51 @@ namespace piSensorNet.Radio.NrfNet
         public void StartListening()
         {
             if (Mode != TransceiverModeEnum.Receiver)
-                ModifyRegister(RegisterEnum.General, i =>
-                                                     {
-                                                         var r = (GeneralRegister)i;
+                ModifyRegister(RegisterEnum.Configuration, i =>
+                                                           {
+                                                               var r = (ConfigurationRegister)i;
 
-                                                         r.TransceiverMode = TransceiverModeEnum.Receiver;
+                                                               r.TransceiverMode = TransceiverModeEnum.Receiver;
 
-                                                         return r;
-                                                     });
+                                                               return r;
+                                                           });
 
-            if (_pipeAddresses[0] != null && _pipeAddresses[0] != _lastAcknowledgeAddress)
-                SetPipeReceiveAddress(0, _pipeAddresses[0]);
-            else if (_isPipe0Enabled)
+            ClearInterrupts();
+
+            Functionalities.Pins.Write(_chipEnable, true);
+
+            if (_pipeAddresses[0] != null)
+            {
+                _lastAcknowledgeAddress = null; // have to clear it, so next time when set, it will actually set
+                InternalSetPipeReceiveAddress(0, _pipeAddresses[0], true);
+            }
+            else if (!_isPipe0Enabled)
                 ModifyRegister<ReceiverAddressRegister>(RegisterEnum.ReceiverAddress, register => register.EnableOnPipe0 = false);
 
             ChangePowerState(PowerStateEnum.Up);
-            ClearInterrupts();
-
-            Functionalities.Pins.Write(_chipEnable, true); // must be held high
 
             // RX setting
 
-            Functionalities.Sleep.Micro(130);
+            // takes about 130us
 
             // RX mode
 
-            // wai??
-            if (((FeatureRegister)ReadRegister(RegisterEnum.Feature)).PayloadWithAcknowledgeEnabled)
+            if (((FeatureRegister)ReadRegister(RegisterEnum.Feature)).AcknowledgeWithPayloadEnabled)
                 WriteCommand(CommandEnum.FlushTransmitQueue);
         }
 
         public void StopListening()
         {
             Functionalities.Pins.Write(_chipEnable, false);
-
-            //Functionalities.Sleep.Micro(200);
+            Functionalities.Sleep.Micro(200);
 
             // Standby-I
 
-            if (((FeatureRegister)ReadRegister(RegisterEnum.Feature)).PayloadWithAcknowledgeEnabled)
-                WriteCommand(CommandEnum.FlushTransmitQueue);
+            //if (((FeatureRegister)ReadRegister(RegisterEnum.Feature)).AcknowledgeWithPayloadEnabled)
+            //{
+            //    Functionalities.Sleep.Micro(200);
+            //    WriteCommand(CommandEnum.FlushTransmitQueue);
+            //}
 
             if (_isPipe0Enabled)
                 ModifyRegister<ReceiverAddressRegister>(RegisterEnum.ReceiverAddress, register => register.EnableOnPipe0 = true);
@@ -375,8 +380,7 @@ namespace piSensorNet.Radio.NrfNet
 
         public Address ReadPipeAddress(byte pipeNumber)
         {
-            if (pipeNumber > 5)
-                throw new ArgumentOutOfRangeException(nameof(pipeNumber));
+            if (pipeNumber > 5) throw new ArgumentOutOfRangeException(nameof(pipeNumber));
 
             var pipeRegister = pipeNumber.PipeAddressRegister();
             var readReceiveAddress = (byte)((byte)CommandEnum.ReadRegister | (byte)pipeRegister);
@@ -407,23 +411,29 @@ namespace piSensorNet.Radio.NrfNet
             }
         }
 
+        [CanBeNull]
         public Address GetPipeAddress(byte pipeNumber)
         {
-            if (pipeNumber > 5)
-                throw new ArgumentOutOfRangeException(nameof(pipeNumber));
+            if (pipeNumber > 5) throw new ArgumentOutOfRangeException(nameof(pipeNumber));
 
             return _pipeAddresses[pipeNumber];
         }
 
+        [NotNull]
         public StatusRegister ChangePowerState(PowerStateEnum state)
-            => ModifyRegister(RegisterEnum.General, register =>
-                                                    {
-                                                        var generalRegister = (GeneralRegister)register;
+        {
+            if (state == PowerStateEnum.Down)
+                Functionalities.Pins.Write(_chipEnable, false);
 
-                                                        generalRegister.PowerState = state;
+            return ModifyRegister(RegisterEnum.Configuration, register =>
+                                                              {
+                                                                  var generalRegister = (ConfigurationRegister)register;
 
-                                                        return generalRegister;
-                                                    });
+                                                                  generalRegister.PowerState = state;
+
+                                                                  return generalRegister;
+                                                              });
+        }
 
         public bool IsDataAvailable()
             => !((FifoStatusRegister)ReadRegister(RegisterEnum.FifoStatus)).ReceiveQueueEmpty;
@@ -448,7 +458,13 @@ namespace piSensorNet.Radio.NrfNet
             return true;
         }
 
-        private StatusRegister Exchange(byte registerOrCommand, byte[] data, bool discardResponse = false)
+        public void Dispose()
+        {
+            Functionalities.Pins.Write(_chipEnable, false);
+            ChangePowerState(PowerStateEnum.Down);
+        }
+
+        private byte Exchange(byte registerOrCommand, [CanBeNull] byte[] data, bool discardResponse = false)
         {
             var length = data?.Length ?? 0;
             var bufferLength = length + 1;
@@ -469,19 +485,29 @@ namespace piSensorNet.Radio.NrfNet
             return _exchangeBuffer[0];
         }
 
-        private void SetAcknowledgeAddress(Address address)
+        [NotNull]
+        private StatusRegister InternalSetPipeReceiveAddress(byte pipeNumber, [NotNull] Address address, bool saveAddress)
+        {
+            if (address == null) throw new ArgumentNullException(nameof(address));
+            if (pipeNumber >= 2) throw new ArgumentOutOfRangeException(nameof(pipeNumber));
+
+            var pipeAddressRegister = pipeNumber.PipeAddressRegister();
+            var writeReceiveAddress = (byte)((byte)CommandEnum.WriteRegister | (byte)pipeAddressRegister);
+
+            if (saveAddress)
+                _pipeAddresses[pipeNumber] = address;
+
+            return Exchange(writeReceiveAddress, address.Bytes, true);
+        }
+
+        private void SetAcknowledgeAddress([NotNull] Address address)
         {
             if (address == _lastAcknowledgeAddress)
                 return;
 
             _lastAcknowledgeAddress = address;
 
-            SetPipeReceiveAddress(0, address);
-        }
-
-        public void Dispose()
-        {
-            Functionalities.Pins.Write(_chipEnable, false);
+            InternalSetPipeReceiveAddress(0, address, false);
         }
     }
 }

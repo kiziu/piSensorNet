@@ -1,10 +1,11 @@
 using System;
 using System.Linq;
 using System.Text;
+using JetBrains.Annotations;
 
 namespace piSensorNet.Radio.NrfNet
 {
-    public class Packet
+    public sealed class Packet
     {
         public static Address BaseAddress { get; set; }
 
@@ -17,10 +18,11 @@ namespace piSensorNet.Radio.NrfNet
         public byte Total { get; }
         public string Message { get; }
 
-        public Packet(byte sequence, Address sender, byte current, byte total, string message)
+        public Packet(byte sequence, [NotNull] Address sender, byte current, byte total, [NotNull] string message)
         {
-            if (message.Length > MessageSize)
-                throw new ArgumentException($"Message size {message.Length} is greater than maximum of {MessageSize}.", nameof(message));
+            if (sender == null) throw new ArgumentNullException(nameof(sender));
+            if (message == null) throw new ArgumentNullException(nameof(message));
+            if (message.Length > MessageSize) throw new ArgumentException($"Message size {message.Length} is greater than maximum of {MessageSize}.", nameof(message));
 
             Sequence = sequence;
             Sender = sender;
@@ -29,14 +31,17 @@ namespace piSensorNet.Radio.NrfNet
             Message = message;
         }
 
+        public override string ToString()
+            => $"[Sequence: {Sequence}, Sender: {Sender}, Current: {Current}, Total: {Total}, Message: {Message}]";
+
         public static explicit operator byte[](Packet input)
         {
             var buffer = new byte[Nrf.PayloadSize];
 
-            buffer[0] = input.Sequence;
-            buffer[1] = input.Sender.LeastSignificantByte;
-            buffer[2] = input.Current;
-            buffer[3] = input.Total;
+            buffer[0] = input.Sender.LeastSignificantByte;
+            buffer[1] = input.Sequence;
+            buffer[2] = input.Total;
+            buffer[3] = input.Current;
 
             var messageBytes = Encoding.ASCII.GetBytes(input.Message);
 
@@ -55,7 +60,7 @@ namespace piSensorNet.Radio.NrfNet
 
             var message = Encoding.ASCII.GetString(input, HeaderSize, input.Length - HeaderSize);
 
-            return new Packet(input[0], new Address(BaseAddress, input[1]), input[2], input[3], message);
+            return new Packet(input[1], new Address(BaseAddress, input[0]), input[3], input[2], message);
         }
     }
 }

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Mono.Unix;
 using Mono.Unix.Native;
+using piSensorNet.WiringPi;
 
 namespace piSensorNet.Common.System
 {
@@ -23,7 +24,6 @@ namespace piSensorNet.Common.System
         [DllImport(LibraryPath, EntryPoint = "raise", SetLastError = true)]
         private static extern int raiseSignal(int sign);
 
-        [Obsolete("Does't work well...")]
         public static IReadOnlyList<IntPtr> BindHandler(Action<SignalTypeEnum> handler, params SignalTypeEnum[] signals)
         {
             var signalHandler = new SignalHandler(i => handler((SignalTypeEnum)i));
@@ -53,7 +53,6 @@ namespace piSensorNet.Common.System
         {
             var thread = new Thread(o =>
             {
-                // TODO KZ: windows only
                 if (Constants.IsWindows)
                     return;
 

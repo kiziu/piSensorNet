@@ -12,7 +12,7 @@ namespace piSensorNet.Logic.FunctionHandlers
     // TODO KZ: extend functionality once more OW device types present
 
     /// <summary>
-    ///  for now, assume OW devices are tempreature sensors
+    ///  for now, assume OW devices are temperature sensors
     /// </summary>
     internal sealed class OwList : TemperatureSensorsFinderBase<string>
     {

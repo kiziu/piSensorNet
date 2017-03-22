@@ -7,7 +7,7 @@ namespace piSensorNet.Radio.NrfNet.Registers
 {
     public class PayloadSizeRegister : IRegister
     {
-        public RegisterEnum Type => PipeNumber.PipeAddressRegister();
+        public RegisterEnum Type => PipeNumber.PipePayloadSizeRegister();
         public byte Value => this;
 
         public byte PipeNumber { get; }

@@ -2,9 +2,9 @@ using System;
 using System.Linq;
 using System.Threading;
 
-namespace piSensorNet.Common.System
+namespace piSensorNet.WiringPi
 {
-    public class ThreadStopper : IDisposable
+    public sealed class ThreadStopper : IDisposable
     {
         private bool _disposed;
         private readonly Thread _thread;

@@ -11,20 +11,20 @@ namespace piSensorNet.Radio.NrfNet.Registers
         public byte Value => this;
 
         public bool ReuseLastTransmitPayload { get; set; }
-        public bool TransmitQueueFull { get; set; }
-        public bool TransmitQueueEmpty { get; set; }
-        public bool ReceiveQueueFull { get; set; }
-        public bool ReceiveQueueEmpty { get; set; }
+        public bool TransmitQueueFull { get; private set; }
+        public bool TransmitQueueEmpty { get; private set; }
+        public bool ReceiveQueueFull { get; private set; }
+        public bool ReceiveQueueEmpty { get; private set; }
 
         private FifoStatusRegister() {}
 
-        public FifoStatusRegister(bool reuseLastTransmitPayload, bool transmitQueueFull, bool transmitQueueEmpty, bool receiveQueueFull, bool receiveQueueEmpty)
+        public FifoStatusRegister(bool reuseLastTransmitPayload)
         {
             ReuseLastTransmitPayload = reuseLastTransmitPayload;
-            TransmitQueueFull = transmitQueueFull;
-            TransmitQueueEmpty = transmitQueueEmpty;
-            ReceiveQueueFull = receiveQueueFull;
-            ReceiveQueueEmpty = receiveQueueEmpty;
+            TransmitQueueFull = false;
+            TransmitQueueEmpty = false;
+            ReceiveQueueFull = false;
+            ReceiveQueueEmpty = false;
         }
 
         public override string ToString()
@@ -37,10 +37,6 @@ namespace piSensorNet.Radio.NrfNet.Registers
             byte output = 0;
 
             ByteExtensions.SetBit(ref output, 6, input.ReuseLastTransmitPayload);
-            ByteExtensions.SetBit(ref output, 5, input.TransmitQueueFull);
-            ByteExtensions.SetBit(ref output, 4, input.TransmitQueueEmpty);
-            ByteExtensions.SetBit(ref output, 1, input.ReceiveQueueFull);
-            ByteExtensions.SetBit(ref output, 0, input.ReceiveQueueEmpty);
 
             return output;
         }

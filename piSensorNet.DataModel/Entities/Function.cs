@@ -19,13 +19,12 @@ namespace piSensorNet.DataModel.Entities
 
         protected Function() {}
 
-        public Function(string name, FunctionTypeEnum functionType, bool isQueryable)
+        public Function(FunctionTypeEnum functionType, bool isQueryable)
         {
-            Name = name;
+            Name = functionType.ToFunctionName();
             FunctionType = functionType;
             IsQueryable = isQueryable;
         }
-
 
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

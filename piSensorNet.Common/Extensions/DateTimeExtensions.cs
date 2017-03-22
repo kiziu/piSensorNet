@@ -29,5 +29,8 @@ namespace piSensorNet.Common.Extensions
 
             return new DateTime(ticks);
         }
+
+        public static String ToFullTimeString(this DateTime dateTime)
+            => dateTime.ToString("HH:mm:ss.ffffff");
     }
 }

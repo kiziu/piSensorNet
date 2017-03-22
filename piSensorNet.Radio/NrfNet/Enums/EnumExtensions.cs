@@ -55,5 +55,26 @@ namespace piSensorNet.Radio.NrfNet.Enums
                     throw new ArgumentOutOfRangeException(nameof(pipeNumber));
             }
         }
+
+        public static RegisterEnum PipePayloadSizeRegister(this byte pipeNumber)
+        {
+            switch (pipeNumber)
+            {
+                case 0:
+                    return RegisterEnum.Pipe0PayloadSize;
+                case 1:
+                    return RegisterEnum.Pipe1PayloadSize;
+                case 2:
+                    return RegisterEnum.Pipe2PayloadSize;
+                case 3:
+                    return RegisterEnum.Pipe3PayloadSize;
+                case 4:
+                    return RegisterEnum.Pipe4PayloadSize;
+                case 5:
+                    return RegisterEnum.Pipe5PayloadSize;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(pipeNumber));
+            }
+        }
     }
 }

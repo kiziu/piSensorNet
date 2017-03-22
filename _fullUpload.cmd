@@ -2,7 +2,7 @@
 SETLOCAL
 
 SET TMP_FILE="%TEMP%\_fullUpload.scp"
-SET BLACKLIST=.git/;bin/;obj/;.gitignore;*.user;*.sln;*.xproj;*.mwb;*.bak;sqls/;*.lock.json;.vs/;*.cmd;*.log;packages/;
+SET BLACKLIST=.git/;bin/;obj/;.gitignore;*.user;*.sln;*.xproj;*.mwb;*.bak;sqls/;debug/;*.lock.json;.vs/;*.cmd;*.log;packages/;*.db;*.opendb;
 
 IF EXIST %TMP_FILE% DEL /F %TMP_FILE%
 

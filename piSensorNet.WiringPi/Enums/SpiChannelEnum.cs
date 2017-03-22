@@ -3,9 +3,14 @@ using System.Linq;
 
 namespace piSensorNet.WiringPi.Enums
 {
-    public enum SpiChannelEnum
+	public enum SpiChannelEnum
+	{
+		Zero = 0,
+		One = 1
+	}
+
+	public static class EnumExtensions
     {
-        Zero = 0,
-        One = 1
+        public static PinNumberEnum ToPinNumber(this SpiChannelEnum channel) => channel == SpiChannelEnum.One ? PinNumberEnum.SPI_CE1 : PinNumberEnum.SPI_CE0;
     }
 }

@@ -5,7 +5,7 @@ namespace piSensorNet.Radio.NrfNet.Enums
 {
     public enum RegisterEnum : byte
     { // size of 1 byte, unless indicated otherwise
-        General = 0,
+        Configuration = 0,
         AutoAcknowledgment = 1,
         ReceiverAddress = 2,
         AddressWidth = 3,

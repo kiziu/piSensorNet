@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using piSensorNet.Common.Custom.Interfaces;
+using piSensorNet.WiringPi.Enums;
 
 namespace piSensorNet.Common
 {
@@ -9,8 +10,12 @@ namespace piSensorNet.Common
         string ConnectionString { get; }
 
         string AddressPattern { get; }
-
         string BroadcastAddress { get; }
+        string HubAddress { get; }
+
+        PinNumberEnum InterruptPin { get; }
+        PinNumberEnum ChipEnablePin { get; }
+        SpiChannelEnum SpiChannel { get; }
 
         int PeriodUnitLengthInMs { get; }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿/*
+using System;
 using System.Linq;
 using piSensorNet.Common.Custom;
 using piSensorNet.Common.System;
@@ -105,3 +106,4 @@ namespace piSensorNet.Radio
         }
     }
 }
+*/

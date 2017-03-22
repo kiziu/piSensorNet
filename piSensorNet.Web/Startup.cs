@@ -1,8 +1,10 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNet.Builder;
+using Microsoft.AspNet.Hosting;
 using Microsoft.AspNet.Mvc;
 using Microsoft.AspNet.Routing;
 using Microsoft.Extensions.Configuration;
@@ -49,6 +51,7 @@ namespace piSensorNet.Web
         }
 
         [Obsolete]
+        [SuppressMessage("ReSharper", "UnusedMember.Local")]
         private static void LoadDemoData(string connectionString)
         {
             using (var context = PiSensorNetDbContext.Connect(connectionString).WithAutoSave())
@@ -58,17 +61,17 @@ namespace piSensorNet.Web
 
                 var functions = context.Functions.AsNoTracking().ToDictionary(i => i.FunctionType, i => i.ID);
 
-                var kizi1 = context.Modules.Add(new Module("1izik") {FriendlyName = "kiziu no 1", State = ModuleStateEnum.Identified});
+                var module1 = context.Modules.Add(new Module("1izik") {FriendlyName = "kiziu no 1", State = ModuleStateEnum.Identified});
                 context.Modules.Add(new Module("2izik") {FriendlyName = "kiziu no 2"});
                 context.Modules.Add(new Module("3izik") {FriendlyName = "kiziu no 3"});
 
                 context.SaveChanges();
 
-                context.ModuleFunctions.AddRange(functions.Select(i => new ModuleFunction(kizi1.ID, i.Value)));
+                context.ModuleFunctions.AddRange(functions.Select(i => new ModuleFunction(module1.ID, i.Value)));
 
                 context.TemperatureSensors.Add(
-                    new TemperatureSensor(kizi1.ID, "2854280E02000070"),
-                    new TemperatureSensor(kizi1.ID, "28AC5F2600008030") {FriendlyName = "Sonda"});
+                    new TemperatureSensor(module1.ID, "2854280E02000070"),
+                    new TemperatureSensor(module1.ID, "28AC5F2600008030") {FriendlyName = "Sonda"});
             }
         }
 
@@ -83,8 +86,10 @@ namespace piSensorNet.Web
             services.AddSignalR(options => { options.Hubs.EnableDetailedErrors = true; });
         }
 
-        public void Configure(IApplicationBuilder applicationBuilder, JsonSerializer jsonSerializer)
+        public void Configure(IApplicationBuilder applicationBuilder, IApplicationLifetime applicationLifetime, JsonSerializer jsonSerializer)
         {
+            //applicationLifetime.ApplicationStopped.Register(ApplicationStoppedHandler);
+
             applicationBuilder.UseIISPlatformHandler()
                               .UseSignalR()
                               .UseStaticFiles()
@@ -95,7 +100,7 @@ namespace piSensorNet.Web
 
             jsonSerializer.Converters.Add(new StringEnumConverter());
         }
-
+        
         private static void ConfigureRoutes<TMainController>(IRouteBuilder routes, string mainController, string mainAction)
         {
             var mianAreaName = Reflector.Instance<TMainController>.Type

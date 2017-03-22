@@ -5,7 +5,7 @@ using piSensorNet.Radio.NrfNet.Enums;
 
 namespace piSensorNet.Radio.NrfNet.Registers
 {
-    public class StatusRegister : IRegister
+    public sealed class StatusRegister : IRegister
     {
         public RegisterEnum Type { get; } = RegisterEnum.Status;
         public byte Value => this;
@@ -13,18 +13,18 @@ namespace piSensorNet.Radio.NrfNet.Registers
         public bool DataReady { get; set; }
         public bool DataSent { get; set; }
         public bool RetransmitLimitReached { get; set; }
-        public byte? DataReadyPipeNumber { get; set; }
-        public bool TransmitQueueFull { get; set; }
+        public byte? DataReadyPipeNumber { get; private set; }
+        public bool TransmitQueueFull { get; private set; }
 
         private StatusRegister() {}
 
-        public StatusRegister(bool dataReady, bool dataSent, bool retransmitLimitReached, byte dataReadyPipeNumber, bool transmitQueueFull)
+        public StatusRegister(bool dataReady, bool dataSent, bool retransmitLimitReached)
         {
             DataReady = dataReady;
             DataSent = dataSent;
             RetransmitLimitReached = retransmitLimitReached;
-            DataReadyPipeNumber = dataReadyPipeNumber;
-            TransmitQueueFull = transmitQueueFull;
+            DataReadyPipeNumber = null;
+            TransmitQueueFull = false;
         }
 
         public override string ToString()
@@ -39,8 +39,6 @@ namespace piSensorNet.Radio.NrfNet.Registers
             ByteExtensions.SetBit(ref output, 6, input.DataReady);
             ByteExtensions.SetBit(ref output, 5, input.DataSent);
             ByteExtensions.SetBit(ref output, 4, input.RetransmitLimitReached);
-            ByteExtensions.SetBits(ref output, 1, 3, input.DataReadyPipeNumber ?? 0);
-            ByteExtensions.SetBit(ref output, 0, input.TransmitQueueFull);
 
             return output;
         }

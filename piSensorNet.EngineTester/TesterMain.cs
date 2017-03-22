@@ -50,7 +50,7 @@ namespace piSensorNet.EngineTester
                     context.Triggers.Add(trigger);
             }
 
-            EngineMain.Main(new[] {"standalone"});
+            EngineMain.Main2(new[] {"standalone"});
 
             return 0;
         }

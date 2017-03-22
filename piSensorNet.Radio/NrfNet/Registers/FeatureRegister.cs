@@ -11,21 +11,21 @@ namespace piSensorNet.Radio.NrfNet.Registers
         public byte Value => this;
 
         public bool DynamicPayloadLengthEnabled { get; set; }
-        public bool PayloadWithAcknowledgeEnabled { get; set; }
+        public bool AcknowledgeWithPayloadEnabled { get; set; }
         public bool DynamicAcknowledgeEnabled { get; set; }
 
         private FeatureRegister() {}
 
-        public FeatureRegister(bool dynamicPayloadLengthEnabled, bool payloadWithAcknowledgeEnabled, bool dynamicAcknowledgeEnabled)
+        public FeatureRegister(bool dynamicPayloadLengthEnabled, bool acknowledgeWithPayloadEnabled, bool dynamicAcknowledgeEnabled)
         {
             DynamicPayloadLengthEnabled = dynamicPayloadLengthEnabled;
-            PayloadWithAcknowledgeEnabled = payloadWithAcknowledgeEnabled;
+            AcknowledgeWithPayloadEnabled = acknowledgeWithPayloadEnabled;
             DynamicAcknowledgeEnabled = dynamicAcknowledgeEnabled;
         }
 
         public override string ToString()
         {
-            return $"[DynamicPayloadLengthEnabled: {DynamicPayloadLengthEnabled}, PayloadWithAcknowledgeEnabled: {PayloadWithAcknowledgeEnabled}, DynamicAcknowledgeEnabled: {DynamicAcknowledgeEnabled}]";
+            return $"[DynamicPayloadLengthEnabled: {DynamicPayloadLengthEnabled}, PayloadWithAcknowledgeEnabled: {AcknowledgeWithPayloadEnabled}, DynamicAcknowledgeEnabled: {DynamicAcknowledgeEnabled}]";
         }
 
         public static implicit operator byte(FeatureRegister input)
@@ -33,7 +33,7 @@ namespace piSensorNet.Radio.NrfNet.Registers
             byte output = 0;
 
             ByteExtensions.SetBit(ref output, 0, input.DynamicAcknowledgeEnabled);
-            ByteExtensions.SetBit(ref output, 1, input.PayloadWithAcknowledgeEnabled);
+            ByteExtensions.SetBit(ref output, 1, input.AcknowledgeWithPayloadEnabled);
             ByteExtensions.SetBit(ref output, 2, input.DynamicPayloadLengthEnabled);
 
             return output;
@@ -44,7 +44,7 @@ namespace piSensorNet.Radio.NrfNet.Registers
             var output = new FeatureRegister
                          {
                              DynamicAcknowledgeEnabled = input.GetBit(0),
-                             PayloadWithAcknowledgeEnabled = input.GetBit(1),
+                             AcknowledgeWithPayloadEnabled = input.GetBit(1),
                              DynamicPayloadLengthEnabled = input.GetBit(2),
                          };
 

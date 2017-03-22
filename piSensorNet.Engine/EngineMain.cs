@@ -32,7 +32,9 @@ namespace piSensorNet.Engine
 {
     public delegate void UserFunctionDelegate(IReadOnlyDictionary<string, int> modules);
 
-    internal delegate void MessageHandler(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text, IReadOnlyMap<string, int> moduleAddresses, IpiSensorNetConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes, int? serialProcessID, IHubProxy hubProxy, Action<string> logger);
+    internal delegate void MessageHandler(string clientID, int? moduleID, FunctionTypeEnum functionType, bool isQuery, string text,
+        IReadOnlyMap<string, int> moduleAddresses, IpiSensorNetConfiguration moduleConfiguration, IReadOnlyMap<FunctionTypeEnum, int> functionTypes,
+        int? serialProcessID, IHubProxy hubProxy, Action<string> logger);
 
     internal delegate IReadOnlyMap<string, int> CacheModuleAddressesDelegate(PiSensorNetDbContext context);
 
@@ -69,7 +71,7 @@ namespace piSensorNet.Engine
 
         private static readonly ConcurrentQueue<TriggerSource> AbsoluteTimeTriggers = new ConcurrentQueue<TriggerSource>();
 
-        public static int Main(string[] args)
+        public static int Main2(string[] args)
         {
             ToConsole("Main: Initializing Engine...");
 
@@ -225,15 +227,18 @@ namespace piSensorNet.Engine
                                 FriendlyName = address,
                                 Description = "Test module",
                             }
-                           .Modify(i => i.ModuleFunctions.Add(context.Functions.Select(f => new ModuleFunction(i, f))))
-                           .Modify(i => i.Packets.Add(new[]
+                           .For(i => { i.ModuleFunctions.Add(context.Functions.Select(f => new ModuleFunction(i, f))); })
+                           .For(i =>
+                                {
+                                    i.Packets.Add(new[]
+                                                  {
+                                                      new Packet(i, 0, "identify;function_list;voltage;report;ow_list;ow_ds18b20_temperature;ow_ds18b20_temperature_periodical;", DateTime.Now)
+                                                          // "2854280E02000070|25.75;28AC5F2600008030|25.75;"
                                                       {
-                                                          new Packet(i, 0, "identify;function_list;voltage;report;ow_list;ow_ds18b20_temperature;ow_ds18b20_temperature_periodical;", DateTime.Now)
-                                                              // "2854280E02000070|25.75;28AC5F2600008030|25.75;"
-                                                          {
-                                                              FunctionID = functionID,
-                                                          }
-                                                      }))
+                                                          FunctionID = functionID,
+                                                      }
+                                                  });
+                                })
                     );
 
                 context.SaveChanges();
@@ -303,7 +308,7 @@ namespace piSensorNet.Engine
             catch (Exception e)
             {
                 logger($"InitializeHubConnection: ERROR: Exception occurred while initializing hub connection: {e.Message}.");
-                
+
                 return null;
             }
 

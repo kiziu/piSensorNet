@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace piSensorNet.WiringPi.Enums
 {
     public enum SerialBaudRateEnum

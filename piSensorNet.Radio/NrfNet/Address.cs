@@ -1,72 +1,72 @@
 using System;
 using System.Linq;
 using System.Text;
+using JetBrains.Annotations;
 using piSensorNet.Common.Extensions;
 
 namespace piSensorNet.Radio.NrfNet
 {
     // LSB is sent first
-    public class Address : IEquatable<Address>
+    public sealed class Address : IEquatable<Address>
     {
+        [NotNull]
         internal byte[] Bytes { get; }
 
         public byte LeastSignificantByte => Bytes[0];
+
+        public string Readable => Encoding.ASCII.GetString(Bytes.Reverse());
 
         internal Address()
         {
             Bytes = new byte[Nrf.AddressSize];
         }
 
-        internal Address(byte[] bytes)
+        internal Address([NotNull] byte[] bytes)
             : this()
         {
-            if (bytes.Length != Nrf.AddressSize)
-                throw new ArgumentException("Input array must have 5 elements", nameof(bytes));
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            if (bytes.Length != Nrf.AddressSize) throw new ArgumentException("Input array must have 5 elements", nameof(bytes));
 
             bytes.CopyTo(Bytes, 0);
         }
 
-        public Address(byte[] bytes, byte leastSignificantByte)
-            : this()
+        public Address([NotNull] byte[] bytes, byte leastSignificantByte)
+            : this(bytes)
         {
-            if (bytes.Length != Nrf.AddressSize)
-                throw new ArgumentException("Input array must have 5 elements", nameof(bytes));
-
-            bytes.CopyTo(Bytes, 0);
-
             Bytes[0] = leastSignificantByte;
         }
 
-        public Address(Address address, byte leastSignificantByte)
+        public Address([NotNull] Address address, byte leastSignificantByte)
             : this()
         {
+            if (address == null) throw new ArgumentNullException(nameof(address));
+
             address.Bytes.CopyTo(Bytes, 0);
 
             Bytes[0] = leastSignificantByte;
         }
 
-        public Address(string address)
+        public Address([NotNull] string address)
         {
-            if (address.Length != Nrf.AddressSize)
-                throw new ArgumentException("String must have 5 characters", nameof(address));
+            if (address == null) throw new ArgumentNullException(nameof(address));
+            if (address.Length != Nrf.AddressSize) throw new ArgumentException("String must have 5 characters", nameof(address));
 
             Bytes = new byte[Nrf.AddressSize];
 
+            var addressBytes = Encoding.ASCII.GetBytes(address);
             for (var i = 0; i < Nrf.AddressSize; ++i)
-                Bytes[i] = (byte)address[Nrf.AddressSize - i - 1];
+                Bytes[i] = addressBytes[Nrf.AddressSize - i - 1];
         }
 
-        internal void SetLeastSignificantByte(byte value)
-            => Bytes[0] = value;
+        public override string ToString()
+            => $"[{Readable} ({Bytes.Select(i => i.ToString("X2")).Concat()})]";
 
         public bool Equals(Address other)
         {
-            if (ReferenceEquals(this, other))
-                return true;
-            if (ReferenceEquals(other, null))
-                return false;
+            if (ReferenceEquals(other, null)) return false;
+            if (ReferenceEquals(this, other)) return true;
 
-            if (Bytes == null || other.Bytes == null || other.Bytes.Length != Bytes.Length)
+            if (other.Bytes.Length != Bytes.Length)
                 return false;
 
             for (var i = 0; i < Bytes.Length; ++i)
@@ -76,10 +76,22 @@ namespace piSensorNet.Radio.NrfNet
             return true;
         }
 
-        public override string ToString()
-            => BitConverter.ToString(Bytes) + " (" + Encoding.ASCII.GetString(Bytes.Reverse()) + ")";
+        public override bool Equals(object other) 
+            => Equals(other as Address);
 
-        public static implicit operator byte[](Address address)
+        public static bool operator ==(Address left, Address right) 
+            => Equals(left, right);
+
+        public static bool operator !=(Address left, Address right)
+            => !Equals(left, right);
+
+        public override int GetHashCode()
+            => Bytes.GetArrayHashCode();
+
+        internal void SetLeastSignificantByte(byte value)
+            => Bytes[0] = value;
+
+        public static explicit operator byte[] (Address address)
         {
             var buffer = new byte[Nrf.AddressSize];
 
@@ -88,19 +100,14 @@ namespace piSensorNet.Radio.NrfNet
             return buffer;
         }
 
-        public static implicit operator Address(byte[] bytes)
+        public static explicit operator Address(byte[] bytes)
             => new Address(bytes);
 
-        public static bool operator ==(Address left, Address right)
-            => !ReferenceEquals(left, null) && left.Equals(right);
+        public static explicit operator Address(string input)
+            => new Address(input);
 
-        public static bool operator !=(Address left, Address right)
-            => !(left == right);
-
-        public override bool Equals(object obj)
-            => Equals(obj as Address);
-
-        public override int GetHashCode()
-            => Bytes?.GetHashCode() ?? 0;
+        public static explicit operator string(Address input)
+            => Encoding.ASCII.GetString(input.Bytes);
     }
 }
+ 

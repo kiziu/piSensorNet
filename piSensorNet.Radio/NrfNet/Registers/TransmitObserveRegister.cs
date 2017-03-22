@@ -10,15 +10,13 @@ namespace piSensorNet.Radio.NrfNet.Registers
         public RegisterEnum Type { get; } = RegisterEnum.TransmitObserve;
         public byte Value => this;
 
-        public byte LostPacketCount { get; set; }
-        public byte RetransmittedPacketCount { get; set; }
+        public byte LostPacketCount { get; private set; }
+        public byte RetransmittedPacketCount { get; private set; }
 
-        private TransmitObserveRegister() {}
-
-        public TransmitObserveRegister(byte lostPacketCount, byte retransmittedPacketCount)
+        public TransmitObserveRegister()
         {
-            LostPacketCount = lostPacketCount;
-            RetransmittedPacketCount = retransmittedPacketCount;
+            LostPacketCount = 0;
+            RetransmittedPacketCount = 0;
         }
 
         public override string ToString()
@@ -26,15 +24,8 @@ namespace piSensorNet.Radio.NrfNet.Registers
             return $"[LostPacketCount: {LostPacketCount}, RetransmittedPacketCount: {RetransmittedPacketCount}]";
         }
 
-        public static implicit operator byte(TransmitObserveRegister input)
-        {
-            byte output = 0;
-
-            ByteExtensions.SetBits(ref output, 0, 4, input.RetransmittedPacketCount);
-            ByteExtensions.SetBits(ref output, 4, 4, input.LostPacketCount);
-
-            return output;
-        }
+        public static implicit operator byte(TransmitObserveRegister input) 
+            => 0;
 
         public static implicit operator TransmitObserveRegister(byte input)
         {

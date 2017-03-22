@@ -4,7 +4,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using piSensorNet.Common.System;
 using piSensorNet.WiringPi.Enums;
 using piSensorNet.WiringPi.Unmanaged;
 
@@ -38,6 +37,10 @@ namespace piSensorNet.WiringPi
                 RuntimeHelpers.RunClassConstructor(typeof(Functionalities).TypeHandle);
         }
 
+        [SuppressMessage("ReSharper", "UnusedMember.Local")]
+        private static void Debug(string text)
+            => Console.WriteLine($"{DateTime.Now:o} DEBUG: {text}");
+
         public static class Pins
         {
             static Pins()
@@ -65,13 +68,13 @@ namespace piSensorNet.WiringPi
                     Unmanaged.Pins.PullUpSetup(pin, (int)pullUpMode.Value);
             }
 
-            public static void Write(PinNumberEnum pin, bool state)
+            public static void Write(PinNumberEnum pin, bool state) 
                 => InternalWrite((int)pin, state);
 
             public static void Write(BroadcomPinNumberEnum pin, bool state)
                 => InternalWrite((int)pin, state);
 
-            private static void InternalWrite(int pin, bool state)
+            private static void InternalWrite(int pin, bool state) 
                 => Unmanaged.Pins.DigitalWrite(pin, Convert.ToInt32(state));
 
             public static bool Read(PinNumberEnum pin)

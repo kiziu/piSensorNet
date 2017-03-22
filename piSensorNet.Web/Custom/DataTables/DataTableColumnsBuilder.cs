@@ -20,11 +20,11 @@ namespace piSensorNet.Web.Custom.DataTables
         }
 
         public DataTableColumnBuilder<TElement, TValue> For<TValue>(Expression<Func<TElement, TValue>> expression)
-            => new DataTableColumnBuilder<TElement, TValue>(_htmlHelper, expression).Modify(_columns.Add).AddMemberTo(_names);
+            => new DataTableColumnBuilder<TElement, TValue>(_htmlHelper, expression).For(_columns.Add).AddMemberTo(_names);
 
         public DataTableActionsColumnBuilder<TElement> Actions(Action<DataTableActionsColumnBuilder<TElement>> builderAction)
         {
-            var columnsBuilder = new DataTableActionsColumnBuilder<TElement>(_htmlHelper).Modify(_columns.Add);
+            var columnsBuilder = new DataTableActionsColumnBuilder<TElement>(_htmlHelper).For(_columns.Add);
             
             builderAction(columnsBuilder);
 

@@ -101,22 +101,32 @@ namespace piSensorNet.Common.Extensions
         public static string Join(this IEnumerable<string> input, string separator)
             => String.Join(separator, input);
 
+        public static string Join<T>(this IEnumerable<T> input, string separator)
+            => String.Join(separator, input);
+
         public static string Concat(this IEnumerable<string> input)
             => String.Concat(input);
 
+        public static string Concat<T>(this IEnumerable<T> input)
+            => String.Concat(input);
+
         [StringFormatMethod("pattern")]
-        public static string AsFormatFor(this string pattern, params object[] args) 
+        public static string AsFormatFor(this string pattern, params object[] args)
             => String.Format(pattern, args);
 
-        public static IEnumerable<string> Chunkify(this string input, int length)
+        public static IReadOnlyList<string> Chunkify(this string input, int length)
         {
+            var chunkCount = input.Length / length + 1;
+            var list = new List<string>(chunkCount);
+
             if (input.Length == 0)
-                yield break;
+                return list;
 
             if (input.Length <= length)
             {
-                yield return input;
-                yield break;
+                list.Add(input);
+
+                return list;
             }
 
             for (var index = 0; index < input.Length; index += length)
@@ -125,8 +135,10 @@ namespace piSensorNet.Common.Extensions
                 if (index + length > input.Length)
                     chunkLength = input.Length - index;
 
-                yield return input.Substring(index, chunkLength);
+                list.Add(input.Substring(index, chunkLength));
             }
+
+            return list;
         }
 
         public static string RemoveEnd(this string haystack, string needle, StringComparison comparisonType = StringComparison.InvariantCulture)

@@ -13,6 +13,13 @@
         "FunctionResultValueDelimiter": "|",
         "SignalREngineFlagName": "iamengine",
         "WebAddress": "http://kiziepi:8080/",
-        "SignalRHubName": "MainHub"
+        "SignalRHubName": "MainHub",
+
+        "InterruptPin": "PinNumberEnum.Gpio1",
+        "ChipEnablePin": "PinNumberEnum.Gpio0",
+        "SpiChannel": "SpiChannelEnum.One",
+
+        "HubAddress": "kiziu",
+        "BroadcastAddress": "kizie"
     }
 }

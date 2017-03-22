@@ -9,19 +9,19 @@ namespace piSensorNet.Common.Extensions
 {
     public static class CollectionExtensions
     {
-        public static void Each<TElement>([NotNull] this IEnumerable<TElement> items, [InstantHandle] [NotNull] Action<TElement> action)
+        public static void Each<TElement>([NotNull] this IEnumerable<TElement> items, [InstantHandle][NotNull] Action<TElement> action)
         {
             foreach (var item in items)
                 action(item);
         }
 
-        public static void Each<TElement, TResult>([NotNull] this IEnumerable<TElement> items, [InstantHandle] [NotNull] Func<TElement, TResult> action)
+        public static void Each<TElement, TResult>([NotNull] this IEnumerable<TElement> items, [InstantHandle][NotNull] Func<TElement, TResult> action)
         {
             foreach (var item in items)
                 action(item);
         }
 
-        public static void Each<TElement>([NotNull] this IEnumerable<TElement> items, [InstantHandle] [NotNull] Action<int, TElement> action)
+        public static void Each<TElement>([NotNull] this IEnumerable<TElement> items, [InstantHandle][NotNull] Action<int, TElement> action)
         {
             var index = 0;
             foreach (var item in items)
@@ -57,7 +57,7 @@ namespace piSensorNet.Common.Extensions
             => new HashSet<TElement>(source);
 
         [NotNull]
-        public static Map<TForwardKey, TReverseKey> ToMap<TElement, TForwardKey, TReverseKey>([NotNull] this IEnumerable<TElement> source, [InstantHandle] [NotNull] Func<TElement, TForwardKey> forwardKeySelector, [InstantHandle] [NotNull] Func<TElement, TReverseKey> reverseKeySelector)
+        public static Map<TForwardKey, TReverseKey> ToMap<TElement, TForwardKey, TReverseKey>([NotNull] this IEnumerable<TElement> source, [InstantHandle][NotNull] Func<TElement, TForwardKey> forwardKeySelector, [InstantHandle][NotNull] Func<TElement, TReverseKey> reverseKeySelector)
         {
             var capacity = 0;
             var collection = source as ICollection<TElement>;
@@ -86,7 +86,7 @@ namespace piSensorNet.Common.Extensions
             => items.ToDictionary(i => i.Key, i => i.Value);
 
         [NotNull]
-        public static Dictionary<TKey, TElementList> ToDictionary<TKey, TElement, TElementList>([NotNull] this IEnumerable<IGrouping<TKey, TElement>> items, [InstantHandle] [NotNull] Func<List<TElement>, TElementList> listModificator)
+        public static Dictionary<TKey, TElementList> ToDictionary<TKey, TElement, TElementList>([NotNull] this IEnumerable<IGrouping<TKey, TElement>> items, [InstantHandle][NotNull] Func<List<TElement>, TElementList> listModificator)
             => items.ToDictionary(i => i.Key, i => listModificator(i.ToList()));
 
         [NotNull]
@@ -109,27 +109,27 @@ namespace piSensorNet.Common.Extensions
             => map;
 
         [NotNull]
-        public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this IReadOnlyCollection<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+        public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this IReadOnlyCollection<TSourceElement> source, [InstantHandle][NotNull] Func<TSourceElement, TResultElement> mappingFunction)
             => InternalMapList(source, source.Count, mappingFunction);
 
         [NotNull]
-        public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this IList<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+        public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this IList<TSourceElement> source, [InstantHandle][NotNull] Func<TSourceElement, TResultElement> mappingFunction)
             => InternalMapList(source, source.Count, mappingFunction);
 
         [NotNull]
-        public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this List<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+        public static List<TResultElement> Map<TSourceElement, TResultElement>([NotNull] this List<TSourceElement> source, [InstantHandle][NotNull] Func<TSourceElement, TResultElement> mappingFunction)
             => source.ReadOnly().Map(mappingFunction);
 
         [NotNull]
-        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this IReadOnlyCollection<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this IReadOnlyCollection<TSourceElement> source, [InstantHandle][NotNull] Func<TSourceElement, TResultElement> mappingFunction)
             => InternalMapArray(source, source.Count, mappingFunction);
 
         [NotNull]
-        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this ICollection<TSourceElement> source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this ICollection<TSourceElement> source, [InstantHandle][NotNull] Func<TSourceElement, TResultElement> mappingFunction)
             => InternalMapArray(source, source.Count, mappingFunction);
 
         [NotNull]
-        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this TSourceElement[] source, [InstantHandle] [NotNull] Func<TSourceElement, TResultElement> mappingFunction)
+        public static TResultElement[] MapArray<TSourceElement, TResultElement>([NotNull] this TSourceElement[] source, [InstantHandle][NotNull] Func<TSourceElement, TResultElement> mappingFunction)
             => InternalMapArray(source, source.Length, mappingFunction);
 
         [NotNull]
@@ -175,6 +175,18 @@ namespace piSensorNet.Common.Extensions
                 result[i] = array[length - i - 1];
 
             return result;
+        }
+
+        public static int GetArrayHashCode<T>([ItemNotNull][NotNull] this T[] array)
+        {
+            if (array == null) throw new ArgumentNullException(nameof(array));
+
+            var hashcode = 17;
+
+            foreach (var item in array)
+                hashcode = hashcode * 31 + item.GetHashCode();
+
+            return hashcode;
         }
     }
 }

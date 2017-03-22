@@ -5,9 +5,9 @@ using piSensorNet.Radio.NrfNet.Enums;
 
 namespace piSensorNet.Radio.NrfNet.Registers
 {
-    public class GeneralRegister : IRegister
+    public class ConfigurationRegister : IRegister
     {
-        public RegisterEnum Type { get; } = RegisterEnum.General;
+        public RegisterEnum Type { get; } = RegisterEnum.Configuration;
         public byte Value => this;
         
         public bool ReceiveInterruptEnabled { get; set; }
@@ -18,9 +18,9 @@ namespace piSensorNet.Radio.NrfNet.Registers
         public PowerStateEnum PowerState { get; set; }
         public TransceiverModeEnum TransceiverMode { get; set; }
 
-        private GeneralRegister() {}
+        private ConfigurationRegister() {}
 
-        public GeneralRegister(bool receiveInterruptEnabled, bool transmitInterruptEnabled, bool retransmitLimitReachedInterruptEnabled, bool crcEnabled, CrcLengthEnum crcLength, PowerStateEnum powerState, TransceiverModeEnum transceiverMode)
+        public ConfigurationRegister(bool receiveInterruptEnabled, bool transmitInterruptEnabled, bool retransmitLimitReachedInterruptEnabled, bool crcEnabled, CrcLengthEnum crcLength, PowerStateEnum powerState, TransceiverModeEnum transceiverMode)
         {
             ReceiveInterruptEnabled = receiveInterruptEnabled;
             TransmitInterruptEnabled = transmitInterruptEnabled;
@@ -36,7 +36,7 @@ namespace piSensorNet.Radio.NrfNet.Registers
             return $"[ReceiveInterruptEnabled: {ReceiveInterruptEnabled}, TransmitInterruptEnabled: {TransmitInterruptEnabled}, RetransmitLimitReachedInterruptEnabled: {RetransmitLimitReachedInterruptEnabled}, CrcEnabled: {CrcEnabled}, CrcLength: {CrcLength}, PowerState: {PowerState}, TransceiverMode: {TransceiverMode}]";
         }
 
-        public static implicit operator byte(GeneralRegister input)
+        public static implicit operator byte(ConfigurationRegister input)
         {
             byte output = 0;
 
@@ -51,9 +51,9 @@ namespace piSensorNet.Radio.NrfNet.Registers
             return output;
         }
 
-        public static implicit operator GeneralRegister(byte input)
+        public static implicit operator ConfigurationRegister(byte input)
         {
-            var output = new GeneralRegister
+            var output = new ConfigurationRegister
                          {
                              ReceiveInterruptEnabled = !input.GetBit(6),
                              TransmitInterruptEnabled = !input.GetBit(5),
