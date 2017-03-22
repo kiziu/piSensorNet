@@ -38,7 +38,7 @@ namespace piSensorNet.ModuleTester
                         var messageID = eventArgs.Message.Split('#')[0].FromBase36();
                         var timeTaken = eventArgs.LastPacketReceived - MessageSentTimes[messageID];
 
-                        timeTakenMessage = $" Sending took {timeTaken.TotalMilliseconds}ms.";
+                        timeTakenMessage = $" Roundtrip took {timeTaken.TotalMilliseconds}ms.";
                     }
 
                     Console.WriteLine($"<-- {DateTime.UtcNow.ToFullTimeString()}: Received from {eventArgs.Sender} ({eventArgs.ChunksCount} chunk(s)): {eventArgs.Message} = {eventArgs.TimeTaken.TotalMilliseconds:N2}ms.{timeTakenMessage}");
@@ -54,7 +54,7 @@ namespace piSensorNet.ModuleTester
                         MessageSentTimes.Add(eventArgs.ID, eventArgs.FirstPacketSent);
                         var timeTaken = eventArgs.FirstPacketSent - MessageQueuedTimes[eventArgs.ID];
 
-                        timeTakenMessage = $" Queueing took {timeTaken.TotalMilliseconds}ms.";
+                        timeTakenMessage = $" Dequeueing took {timeTaken.TotalMilliseconds}ms.";
                     }
 
                     Console.WriteLine($"--> {DateTime.UtcNow.ToFullTimeString()}: Sent message #{eventArgs.ID} ({eventArgs.ChunksCount} chunk(s){(readRetransmissionsCount ? $"; {eventArgs.RetransmissionsCounts.Join(",")}" : String.Empty)}) = {eventArgs.TimeTaken.TotalMilliseconds:N2}ms.{timeTakenMessage}");
@@ -83,6 +83,7 @@ namespace piSensorNet.ModuleTester
                 module.Start(true);
 
                 var loop = true;
+				Address recipientAddress = null;
                 do
                 {
                     Console.WriteLine();
@@ -103,8 +104,6 @@ namespace piSensorNet.ModuleTester
 
                     if (String.IsNullOrEmpty(selection))
                         goto SELECTION;
-
-                    Address recipientAddress = null;
 
                     var function = functions.Where(i => i.Option == selection).SingleOrDefault();
                     if (function != null)
@@ -136,14 +135,11 @@ namespace piSensorNet.ModuleTester
 
                         case "msg":
                             bool broadcast;
-                            if (!RequestRecipientAddress(ref recipientAddress))
-                                continue;
-                            if (!Ask("Send as broadcast?", out broadcast))
-                                continue;
-                            if (!RequestMessage(out message))
-                                continue;
+                            if (!RequestRecipientAddress(ref recipientAddress)) continue;
+                            if (!Ask("Send as broadcast?", out broadcast)) continue;
+                            if (!RequestMessage(out message)) continue;
 
-                            id = SendMessage(module, id, recipientAddress, ref recipientAddress, message, broadcast);
+                            id = SendMessage(module, id, null, ref recipientAddress, message, broadcast);
                             break;
 
                         case "q":
@@ -181,10 +177,8 @@ namespace piSensorNet.ModuleTester
             if (address == null && !RequestRecipientAddress(ref recipientAddress))
                 return id;
 
-            if (address != null)
-                recipientAddress = address;
-
             address = address ?? recipientAddress;
+            recipientAddress = address;
 
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (MeasureTime)
@@ -211,16 +205,19 @@ namespace piSensorNet.ModuleTester
             var reuseAddressMessage = recipientAddress != null ? $", ENTER to reuse '{recipientAddress.Readable}'" : String.Empty;
 
             Console.Write($"Enter recipient (or q to cancel{reuseAddressMessage}): ");
+			var left = Console.CursorLeft;
+			
             var recipientString = (Console.ReadLine() ?? String.Empty).Trim();
             if (recipientString == "q")
-            {
-                recipientAddress = null;
                 return false;
-            }
 
             if (string.IsNullOrEmpty(recipientString) && recipientAddress != null)
             {
-                Console.WriteLine($"\tReusing address '{recipientAddress.Readable}'.");
+				--Console.CursorTop;
+				Console.CursorLeft = left;
+				
+                Console.WriteLine(recipientAddress.Readable);
+				
                 return true;
             }
 

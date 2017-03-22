@@ -1,18 +1,17 @@
 @ECHO OFF
 SETLOCAL
 
-SET TMP_FILE="%TEMP%\_upload.scp"
-SET BLACKLIST=.git/;bin/;obj/;.gitignore;*.user;*.sln;*.xproj;*.mwb;*.bak;sqls/;debug/;*.lock.json;wwwroot/;.vs/;*.cmd;*.log;packages/;*.db;*.opendb;
+SET TMP_FILE="%TEMP%\_download.scp"
 
 IF EXIST %TMP_FILE% DEL /F %TMP_FILE%
 
 ECHO option batch abort >> %TMP_FILE%
 ECHO option confirm off >> %TMP_FILE%
 ECHO open sftp://pi:13Misiaczek13!@192.168.13.2/ >> %TMP_FILE%
-ECHO cd /home/pi >> %TMP_FILE%
+ECHO cd /home/pi/piSensorNet >> %TMP_FILE%
 ECHO option transfer binary >> %TMP_FILE%
-ECHO put E:\Documents\piSensorNet\piSensorNet -permissions=0777 -neweronly -filemask=*^|%BLACKLIST% >> %TMP_FILE%
+ECHO get * E:\Documents\piSensorNet\piSensorNet\ -neweronly -filemask=*.cs;*.json;*. >> %TMP_FILE%
 ECHO close >> %TMP_FILE%
 ECHO exit >> %TMP_FILE%
 
-CALL D:\Standalone\WinSCP.exe /console /script=%TMP_FILE% /log=_upload.log
+CALL D:\Standalone\WinSCP.exe /console /script=%TMP_FILE% /log=_download.log
